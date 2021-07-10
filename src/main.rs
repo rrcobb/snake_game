@@ -40,6 +40,7 @@ fn main() {
             }
             dbg!(&direction);
         }
+        grid = lib::grid_init(columns, rows);
         snake::update_snake_pos(&mut snake, &direction);
         snake::draw_snake_on_grid(&mut grid, &snake);
         lib::display_frame(&mut canvas, &grid, &columns, &rows, &cell_width);

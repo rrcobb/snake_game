@@ -6,7 +6,7 @@ from https://snake.rustbridge.com/
 
 - intended for a live session, not a self-led async kind of thing
 - lots of copy/paste coding, maybe that's okay
-- the end result code is kinda bad
+- the end result code is kinda bad!
 - we don't make the whole snake game!
 
 - all mutable all the time
@@ -29,4 +29,17 @@ from https://snake.rustbridge.com/
   - dbg!, Clone, Debug
 
 - https://github.com/rustbridge/rusty-snake-book/issues
+
+## Making the game work
+
+- clear path behind snake - clear whole grid?
+- snake is a vec? path?, instead of representing as a path on the grid
+- snake die on self-collision
+- wrap at the edges
+- pause / restart
+- show dot
+- eat dot: snake length + 1, new dot
+- show text on the screen
+- scores
+- snake color
 

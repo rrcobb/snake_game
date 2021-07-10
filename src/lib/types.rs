@@ -9,11 +9,24 @@ pub struct Cell {
     pub blue: u8,
 }
 
-#[derive(Debug)]
-pub struct SnakeHead {
+#[derive(Clone, Debug)]
+pub struct Dot {
     pub row: i32,
     pub column: i32,
     pub color: Cell,
+}
+
+#[derive(Debug, Clone)]
+pub struct SnakeHead {
+    pub row: i32,
+    pub column: i32,
+}
+
+#[derive(Debug)]
+pub struct Snake{
+    pub len: usize,
+    pub color: Cell,
+    pub path: Vec<SnakeHead>,
 }
 
 #[derive(Debug)]
