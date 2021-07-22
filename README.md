@@ -9,7 +9,7 @@ from https://snake.rustbridge.com/
 - the end result code is kinda bad!
 - we don't make the whole snake game!
 
-- all mutable all the time
+- all mutable all the time, BABY
 - a little weird about both taking mutable references _and_ returning an updated
     value
 - vecs know their length! no need to pass around extra lengths for the grid size
@@ -36,16 +36,23 @@ from https://snake.rustbridge.com/
 - clear path behind snake (clear whole grid)
 - snake is a vec, instead of representing as a path on the grid
 - pause (spacebar)
+- how should the game end?
+  - for now: console.log a loss, end
+- snake die on self-collision
+
+- wrap at the edges (currently, die at edges)
 
 ### TODO
 
-- snake die on self-collision
-- wrap at the edges
 - show dot
 - eat dot: snake length + 1, new dot
 - show text on the screen
 - scores
 - snake color
+
+- some refactoring
+    - grid to store cols and rows
+    - associated methods instead of free ones?
 
 possible:
 - menu? pause menu?

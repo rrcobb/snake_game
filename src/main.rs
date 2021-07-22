@@ -1,8 +1,7 @@
-use std::thread;
-use std::time;
-
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
+use std::thread;
+use std::time;
 pub mod lib;
 use lib::snake;
 use lib::types::Direction;
@@ -18,6 +17,7 @@ fn main() {
     let mut grid = lib::grid_init(columns, rows);
     let mut direction = Direction::Right;
     let mut snake = snake::init_snake();
+    let mut dot = lib::init_dot();
     let mut paused = false;
     'game: loop {
         for event in events.poll_iter() {
@@ -31,25 +31,43 @@ fn main() {
                 Event::KeyDown {
                     keycode: Some(Keycode::Space),
                     ..
-                } => { paused = !paused },
+                } => {
+                    dbg!("paused");
+                    paused = !paused;
+                }
                 Event::KeyDown { keycode, .. } => {
-                    if paused { continue 'game }
+                    if paused {
+                        continue 'game;
+                    }
                     match keycode {
-                        Some(Keycode::Up) => { direction = Direction::Up; },
-                        Some(Keycode::Down) => { direction = Direction::Down; },
-                        Some(Keycode::Left) => { direction = Direction::Left; },
-                        Some(Keycode::Right) => { direction = Direction::Right; },
+                        Some(Keycode::Up) => {
+                            direction = Direction::Up;
+                        }
+                        Some(Keycode::Down) => {
+                            direction = Direction::Down;
+                        }
+                        Some(Keycode::Left) => {
+                            direction = Direction::Left;
+                        }
+                        Some(Keycode::Right) => {
+                            direction = Direction::Right;
+                        }
                         _ => continue 'game,
                     };
-                },
+                }
                 _ => continue 'game,
             }
-            dbg!(&direction);
         }
         if !paused {
             grid = lib::grid_init(columns, rows);
             snake::update_snake_pos(&mut snake, &direction);
+            let valid = snake::check_snake_pos(&snake, rows, columns);
+            if !valid {
+                dbg!("Hit something");
+                break 'game;
+            }
             snake::draw_snake_on_grid(&mut grid, &snake);
+            lib::draw_dot_on_grid(&mut grid, &dot);
             lib::display_frame(&mut canvas, &grid, &columns, &rows, &cell_width);
         }
         thread::sleep(time::Duration::from_millis(80));

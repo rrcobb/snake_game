@@ -1,13 +1,13 @@
 use sdl2::pixels::Color;
+use sdl2::rect::Rect;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 use sdl2::EventPump;
-use sdl2::rect::Rect;
 // use rand;
 
-pub mod types;
 pub mod snake;
-use types::{Grid, Cell};
+pub mod types;
+use types::{Cell, Grid};
 
 pub fn display_frame(
     renderer: &mut Canvas<Window>,
@@ -64,6 +64,26 @@ pub fn grid_init(nx_cells: u32, ny_cells: u32) -> Grid {
     let grid = Grid { grid: grid_vector };
 
     grid
+}
+
+pub struct Dot {
+    row: u32,
+    column: u32,
+    color: Cell,
+}
+
+pub fn init_dot() -> Dot {
+    // don't put the dot where the snake is...
+    // hardcoded pos for now
+    Dot {
+        row: 10,
+        column: 18,
+        color: Cell { red: 255, green: 255, blue: 255, },
+    }
+}
+
+pub fn draw_dot_on_grid(grid: &mut Grid, dot: &Dot) {
+   grid.grid[dot.row as usize][dot.column as usize] = dot.color.clone(); 
 }
 
 pub fn init(width: u32, height: u32) -> (Canvas<Window>, EventPump) {

@@ -16,14 +16,14 @@ pub struct Dot {
     pub color: Cell,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SnakeHead {
     pub row: i32,
     pub column: i32,
 }
 
 #[derive(Debug)]
-pub struct Snake{
+pub struct Snake {
     pub len: usize,
     pub color: Cell,
     pub path: Vec<SnakeHead>,
@@ -35,4 +35,12 @@ pub enum Direction {
     Down,
     Left,
     Right,
+}
+
+// is this what I need?
+#[derive(Debug)]
+pub enum Validity {
+    Valid,
+    OutOfBounds,
+    SelfCollision,
 }
