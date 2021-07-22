@@ -32,14 +32,23 @@ from https://snake.rustbridge.com/
 
 ## Making the game work
 
-- clear path behind snake - clear whole grid?
-- snake is a vec? path?, instead of representing as a path on the grid
+### DONE
+- clear path behind snake (clear whole grid)
+- snake is a vec, instead of representing as a path on the grid
+- pause (spacebar)
+
+### TODO
+
 - snake die on self-collision
 - wrap at the edges
-- pause / restart
 - show dot
 - eat dot: snake length + 1, new dot
 - show text on the screen
 - scores
 - snake color
 
+possible:
+- menu? pause menu?
+- use the worker thread to speed something up?
+- use some kind of fancy data structure somehow
+- show some timing information

@@ -18,6 +18,7 @@ fn main() {
     let mut grid = lib::grid_init(columns, rows);
     let mut direction = Direction::Right;
     let mut snake = snake::init_snake();
+    let mut paused = false;
     'game: loop {
         for event in events.poll_iter() {
             dbg!(&event);
@@ -27,7 +28,12 @@ fn main() {
                     ..
                 }
                 | Event::Quit { .. } => break 'game,
+                Event::KeyDown {
+                    keycode: Some(Keycode::Space),
+                    ..
+                } => { paused = !paused },
                 Event::KeyDown { keycode, .. } => {
+                    if paused { continue 'game }
                     match keycode {
                         Some(Keycode::Up) => { direction = Direction::Up; },
                         Some(Keycode::Down) => { direction = Direction::Down; },
@@ -40,10 +46,12 @@ fn main() {
             }
             dbg!(&direction);
         }
-        grid = lib::grid_init(columns, rows);
-        snake::update_snake_pos(&mut snake, &direction);
-        snake::draw_snake_on_grid(&mut grid, &snake);
-        lib::display_frame(&mut canvas, &grid, &columns, &rows, &cell_width);
+        if !paused {
+            grid = lib::grid_init(columns, rows);
+            snake::update_snake_pos(&mut snake, &direction);
+            snake::draw_snake_on_grid(&mut grid, &snake);
+            lib::display_frame(&mut canvas, &grid, &columns, &rows, &cell_width);
+        }
         thread::sleep(time::Duration::from_millis(80));
     }
 }
