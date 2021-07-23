@@ -69,17 +69,24 @@ pub fn grid_init(nx_cells: u32, ny_cells: u32) -> Grid {
 pub fn init_dot(rows: u32, columns: u32, snake: &Snake) -> Dot {
    let mut rng = thread_rng();
     // don't put the dot off the grid
-   let row: i32 = rng.gen_range(0..rows) as i32;
-   let column: i32 = rng.gen_range(0..columns) as i32;
+   let mut row: i32 = rng.gen_range(0..rows) as i32;
+   let mut column: i32 = rng.gen_range(0..columns) as i32;
 
    // don't put the dot on the snake
-   // TODO
+   while on_snake(row, column, &snake) {
+      row = rng.gen_range(0..rows) as i32;
+      column = rng.gen_range(0..columns) as i32;
+   }
 
    Dot {
         row,
         column,
         color: Cell { red: 255, green: 255, blue: 255, },
     }
+}
+
+fn on_snake(row: i32, column: i32, snake: &Snake) -> bool {
+   snake.path.iter().any(|segment| segment.row == row && segment.column == column) 
 }
 
 pub fn draw_dot_on_grid(grid: &mut Grid, dot: &Dot) {

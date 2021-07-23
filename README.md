@@ -41,10 +41,10 @@ from https://snake.rustbridge.com/
 - snake die on self-collision
 - show dot
 - eat dot: snake length + 1, new dot
+- don't place the dot on the snake
 
 ### TODO
 
-- don't place the dot on the snake
 - show text on the screen
     - start screen
     - end screen
@@ -67,3 +67,4 @@ possible:
   - cache the rng for the dot random location
   - where is the actual speed cost?
 - use some kind of fancy data structure somehow (for what?)
+- tests
