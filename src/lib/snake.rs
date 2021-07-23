@@ -25,8 +25,8 @@ pub fn update_snake_pos(snake: &mut Snake, direction: &Direction) {
         Right => (1, 0),
     };
     let mut head = snake.path[0].clone();
-    head.row = head.row + x;
-    head.column = head.column + y;
+    head.row += x;
+    head.column += y;
     snake.path.insert(0, head);
     while snake.len < snake.path.len() {
         snake.path.pop();

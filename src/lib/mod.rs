@@ -45,7 +45,10 @@ pub fn display_cell(
     let drawing_color = Color::RGB(cell_color.red, cell_color.green, cell_color.blue);
 
     renderer.set_draw_color(drawing_color);
-    renderer.fill_rect(Rect::new(x, y, *cell_width, *cell_height));
+    match renderer.fill_rect(Rect::new(x, y, *cell_width, *cell_height)) {
+       Ok(_) => {},
+       Err(error) => panic!("{}", error),
+    }
 }
 
 pub fn grid_init(nx_cells: u32, ny_cells: u32) -> Grid {
@@ -61,9 +64,8 @@ pub fn grid_init(nx_cells: u32, ny_cells: u32) -> Grid {
             });
         }
     }
-    let grid = Grid { grid: grid_vector };
 
-    grid
+    Grid { grid: grid_vector }
 }
 
 pub fn init_dot(rows: u32, columns: u32, snake: &Snake) -> Dot {

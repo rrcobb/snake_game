@@ -14,7 +14,7 @@ fn main() {
     let cell_width = canvas_width / columns;
 
     let (mut canvas, mut events) = lib::init(canvas_width, canvas_height);
-    let mut grid = lib::grid_init(columns, rows);
+    let mut grid;
     let mut direction = Direction::Right;
     let mut snake = snake::init_snake();
     let mut dot = lib::init_dot(rows, columns, &snake);

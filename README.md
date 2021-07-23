@@ -49,14 +49,16 @@ from https://snake.rustbridge.com/
     - start screen
     - end screen
     - scores
-- snake color
 - wrap at the edges (currently, die at edges)
+- snake color
 
 - some refactoring
     - grid to store cols and rows
     - associated methods instead of free ones?
 
 possible:
+- speed increase when eat a dot?
+- game settings: size, speed, colors, icons?
 - menu? pause menu?
 - use a worker thread to speed something up?
 - show timing information
@@ -68,3 +70,4 @@ possible:
   - where is the actual speed cost?
 - use some kind of fancy data structure somehow (for what?)
 - tests
+- handle window resize well
