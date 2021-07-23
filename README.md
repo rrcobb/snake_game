@@ -39,16 +39,18 @@ from https://snake.rustbridge.com/
 - how should the game end?
   - for now: console.log a loss, end
 - snake die on self-collision
-
-- wrap at the edges (currently, die at edges)
+- show dot
+- eat dot: snake length + 1, new dot
 
 ### TODO
 
-- show dot
-- eat dot: snake length + 1, new dot
+- don't place the dot on the snake
 - show text on the screen
-- scores
+    - start screen
+    - end screen
+    - scores
 - snake color
+- wrap at the edges (currently, die at edges)
 
 - some refactoring
     - grid to store cols and rows
@@ -56,6 +58,12 @@ from https://snake.rustbridge.com/
 
 possible:
 - menu? pause menu?
-- use the worker thread to speed something up?
-- use some kind of fancy data structure somehow
-- show some timing information
+- use a worker thread to speed something up?
+- show timing information
+- buffer the input so that two keypresses in a row don't auto-die
+- make 'backwards' disallowed instead of end of game
+- smoother animations
+- profiling? care more abt speed and memory use?
+  - cache the rng for the dot random location
+  - where is the actual speed cost?
+- use some kind of fancy data structure somehow (for what?)

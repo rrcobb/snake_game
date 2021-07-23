@@ -1,4 +1,4 @@
-use crate::lib::types::{Cell, Direction, Grid, Snake, SnakeHead};
+use crate::lib::types::{Cell, Direction, Grid, Snake, SnakeHead, Dot};
 
 pub fn init_snake() -> Snake {
     Snake {
@@ -36,7 +36,7 @@ pub fn update_snake_pos(snake: &mut Snake, direction: &Direction) {
 pub fn draw_snake_on_grid(grid: &mut Grid, snake: &Snake) {
     let color = snake.color.clone();
     for link in snake.path.iter() {
-        grid.grid[link.column as usize][link.row as usize] = color.clone();
+        grid.grid[link.row as usize][link.column as usize] = color.clone();
     }
 }
 
@@ -56,4 +56,13 @@ pub fn check_snake_pos(snake: &Snake, rows: u32, columns: u32) -> bool {
         }
     }
     true
+}
+
+pub fn check_dot(snake: &mut Snake, dot: &Dot) -> bool {
+    let head = &snake.path[0];
+    let hit = head.row == dot.row && head.column == dot.column;
+    if hit {
+        snake.len += 1;
+    }
+    hit
 }

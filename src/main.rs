@@ -17,7 +17,7 @@ fn main() {
     let mut grid = lib::grid_init(columns, rows);
     let mut direction = Direction::Right;
     let mut snake = snake::init_snake();
-    let mut dot = lib::init_dot();
+    let mut dot = lib::init_dot(rows, columns, &snake);
     let mut paused = false;
     'game: loop {
         for event in events.poll_iter() {
@@ -65,6 +65,10 @@ fn main() {
             if !valid {
                 dbg!("Hit something");
                 break 'game;
+            }
+            let eaten = snake::check_dot(&mut snake, &dot);
+            if eaten {
+                dot = lib::init_dot(rows, columns, &snake);
             }
             snake::draw_snake_on_grid(&mut grid, &snake);
             lib::draw_dot_on_grid(&mut grid, &dot);

@@ -3,11 +3,11 @@ use sdl2::rect::Rect;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 use sdl2::EventPump;
-// use rand;
+use rand::{thread_rng, Rng};
 
 pub mod snake;
 pub mod types;
-use types::{Cell, Grid};
+use types::{Cell, Grid, Dot, Snake};
 
 pub fn display_frame(
     renderer: &mut Canvas<Window>,
@@ -38,8 +38,8 @@ pub fn display_cell(
 
     let grid = &grid_data.grid;
 
-    let x = (cell_width * col) as i32;
-    let y = (cell_width * row) as i32;
+    let x = (cell_width * row) as i32;
+    let y = (cell_width * col) as i32;
 
     let cell_color = &grid[row as usize][col as usize];
     let drawing_color = Color::RGB(cell_color.red, cell_color.green, cell_color.blue);
@@ -66,18 +66,18 @@ pub fn grid_init(nx_cells: u32, ny_cells: u32) -> Grid {
     grid
 }
 
-pub struct Dot {
-    row: u32,
-    column: u32,
-    color: Cell,
-}
+pub fn init_dot(rows: u32, columns: u32, snake: &Snake) -> Dot {
+   let mut rng = thread_rng();
+    // don't put the dot off the grid
+   let row: i32 = rng.gen_range(0..rows) as i32;
+   let column: i32 = rng.gen_range(0..columns) as i32;
 
-pub fn init_dot() -> Dot {
-    // don't put the dot where the snake is...
-    // hardcoded pos for now
-    Dot {
-        row: 10,
-        column: 18,
+   // don't put the dot on the snake
+   // TODO
+
+   Dot {
+        row,
+        column,
         color: Cell { red: 255, green: 255, blue: 255, },
     }
 }
