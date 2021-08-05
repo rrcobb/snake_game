@@ -6,6 +6,8 @@ pub mod lib;
 use lib::snake;
 use lib::types::Direction;
 
+static FONT_PATH: &str = "/System/Library/Fonts/SFNSMono.ttf";
+
 fn main() {
     let canvas_width = 720_u32;
     let canvas_height = 720_u32;
@@ -13,15 +15,20 @@ fn main() {
     let rows = 36;
     let cell_width = canvas_width / columns;
 
-    let (mut canvas, mut events) = lib::init(canvas_width, canvas_height);
+    let (mut canvas, mut events, texture_creator) = lib::init(canvas_width, canvas_height);
+    let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string()).expect("failed to init ttf module");
+    let mut font = ttf_context.load_font(FONT_PATH, 128).expect("failed to load font");
+    font.set_style(sdl2::ttf::FontStyle::NORMAL);
     let mut grid;
     let mut direction = Direction::Right;
     let mut snake = snake::init_snake();
     let mut dot = lib::init_dot(rows, columns, &snake);
     let mut paused = false;
+    let mut frame = 0;
     'game: loop {
+        frame += 1;
         for event in events.poll_iter() {
-            dbg!(&event);
+            // dbg!(&event);
             match event {
                 Event::KeyDown {
                     keycode: Some(Keycode::Escape),
@@ -73,6 +80,12 @@ fn main() {
             snake::draw_snake_on_grid(&mut grid, &snake);
             lib::draw_dot_on_grid(&mut grid, &dot);
             lib::display_frame(&mut canvas, &grid, &columns, &rows, &cell_width);
+            for part in 1..10 {
+                let scaling_factor = 4.0 + (part as f32) * 0.1;
+                let message = format!("frame {}, scale {}", frame, scaling_factor); 
+                lib::display_message(&message, &font, &texture_creator, &mut canvas, 0, part * 30, scaling_factor);
+            }
+            canvas.present()
         }
         thread::sleep(time::Duration::from_millis(80));
     }

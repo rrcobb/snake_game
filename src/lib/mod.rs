@@ -1,7 +1,9 @@
+// use std::path::Path;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
-use sdl2::render::Canvas;
-use sdl2::video::Window;
+use sdl2::render::{Canvas, TextureQuery, TextureCreator};
+use sdl2::ttf::Font;
+use sdl2::video::{Window, WindowContext};
 use sdl2::EventPump;
 use rand::{thread_rng, Rng};
 
@@ -24,7 +26,6 @@ pub fn display_frame(
             display_cell(renderer, row, column, &grid, &cell_width)
         }
     }
-    renderer.present();
 }
 
 pub fn display_cell(
@@ -95,13 +96,15 @@ pub fn draw_dot_on_grid(grid: &mut Grid, dot: &Dot) {
    grid.grid[dot.row as usize][dot.column as usize] = dot.color.clone(); 
 }
 
-pub fn init(width: u32, height: u32) -> (Canvas<Window>, EventPump) {
+pub fn init(width: u32, height: u32) -> (Canvas<Window>, EventPump, TextureCreator<WindowContext>) {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
     let window = video_subsystem
         .window("Game", width + 1, height + 1)
         .position_centered()
+        .opengl()
+        // .allow_highdpi()
         .build()
         .unwrap();
 
@@ -111,6 +114,29 @@ pub fn init(width: u32, height: u32) -> (Canvas<Window>, EventPump) {
     canvas.clear();
     canvas.present();
 
+    let texture_creator = canvas.texture_creator();
+
     let event_pump = sdl_context.event_pump().unwrap();
-    (canvas, event_pump)
+    (canvas, event_pump, texture_creator)
+}
+
+// render text onto a canvas given a font
+// font->surface->texture
+// render it on the canvas at the given location
+pub fn display_message(message: &str, font: &Font, texture_creator: &TextureCreator<WindowContext>, canvas: &mut Canvas<Window>, x: i32, y: i32, scaling_factor: f32) -> Result<(), String>{
+   let surface = font
+        .render(message)
+        .blended(Color::RGBA(255, 0, 0, 255))
+        .map_err(|e| e.to_string())?;
+    let texture = texture_creator
+        .create_texture_from_surface(&surface)
+        .map_err(|e| e.to_string())?;
+
+    let TextureQuery { width, height, .. } = texture.query();
+
+    let scaled_width = (width as f32 / scaling_factor) as u32;
+    let scaled_height = (height as f32 / scaling_factor) as u32;
+    let target = Rect::new(x, y, scaled_width, scaled_height);
+    canvas.copy(&texture, None, Some(target))?;
+    Ok(())
 }

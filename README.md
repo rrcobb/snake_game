@@ -20,7 +20,7 @@ from https://snake.rustbridge.com/
 - the modularization is a little weird
   - types.rs is unconventional?
   - it also might not be needed? like, we can do all this in a big main function
-
+  - or, there might be a factoring of the code that feels more appropriate
 
 - nice to introduce, not introduced:
   - nicer iteration patterns (use the vec!)
@@ -42,19 +42,28 @@ from https://snake.rustbridge.com/
 - show dot
 - eat dot: snake length + 1, new dot
 - don't place the dot on the snake
+- show text on the screen
 
 ### TODO
 
-- show text on the screen
+- text
     - start screen
+      - So, before the event loop starts?
     - end screen
+     - So, after the event loop ends?
     - scores
+    - frames
+- show a menu, handle menu navigation keyboard events
+- respond to click events on a menu
 - wrap at the edges (currently, die at edges)
 - snake color
 
 - some refactoring
-    - grid to store cols and rows
+    - grid to store cols and rows?
+    - state object for the game?
+    - somewhere to keep arbitrary consts (Settings struct?)
     - associated methods instead of free ones?
+    - rename the _init functions to something else
 
 possible:
 - speed increase when eat a dot?
