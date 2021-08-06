@@ -123,7 +123,7 @@ pub fn init(width: u32, height: u32) -> (Canvas<Window>, EventPump, TextureCreat
 // render text onto a canvas given a font
 // font->surface->texture
 // render it on the canvas at the given location
-pub fn display_message(message: &str, font: &Font, texture_creator: &TextureCreator<WindowContext>, canvas: &mut Canvas<Window>, x: i32, y: i32, scaling_factor: f32) -> Result<(), String>{
+pub fn display_message(message: &str, font: &Font, texture_creator: &TextureCreator<WindowContext>, canvas: &mut Canvas<Window>, x: i32, y: i32) -> Result<(), String>{
    let surface = font
         .render(message)
         .blended(Color::RGBA(255, 0, 0, 255))
@@ -134,9 +134,7 @@ pub fn display_message(message: &str, font: &Font, texture_creator: &TextureCrea
 
     let TextureQuery { width, height, .. } = texture.query();
 
-    let scaled_width = (width as f32 / scaling_factor) as u32;
-    let scaled_height = (height as f32 / scaling_factor) as u32;
-    let target = Rect::new(x, y, scaled_width, scaled_height);
+    let target = Rect::new(x, y, width, height);
     canvas.copy(&texture, None, Some(target))?;
     Ok(())
 }
