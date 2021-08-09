@@ -47,22 +47,22 @@ from https://snake.rustbridge.com/
 ### TODO
 
 - some refactoring
-    - grid to store cols and rows?
-    - state object for the game?
-    - somewhere to keep arbitrary consts (Settings struct?)
-    - associated methods instead of free ones?
+    - state object for the game
     - somewhere to keep shared initialized stuff (rng, font, canvas, eventpump,
         texturecreator, etc)
+    - somewhere to keep arbitrary consts - Settings struct
+    - associated methods instead of free ones
+    - do away with the grid
     - rename the _init functions to something else
-      - impl default?
       - or ::new
+      - impl default
 
 - text
+    - scores
     - start screen
       - So, before the event loop starts?
     - end screen
      - So, after the event loop ends?
-    - scores
     - frames
 - show a menu, handle menu navigation keyboard events
 - respond to click events on a menu

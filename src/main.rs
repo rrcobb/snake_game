@@ -6,10 +6,10 @@ use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::{Canvas, TextureQuery, TextureCreator};
-use sdl2::ttf::Font;
+use sdl2::ttf::{Font, Sdl2TtfContext};
 use sdl2::video::{Window, WindowContext};
 use sdl2::EventPump;
-use rand::{thread_rng, Rng};
+use rand::{thread_rng, Rng, rngs::ThreadRng};
 
 #[derive(Clone, Debug)]
 pub struct Cell {
@@ -50,44 +50,134 @@ pub enum Direction {
     Right,
 }
 
-pub fn init_snake() -> Snake {
-    Snake {
-        len: 4, // initial snake length
-        color: Cell {
-            // cell color
-            red: 200_u8,
-            green: 0_u8,
-            blue: 100_u8,
-        },
-        path: vec![
-            // initial snake pos
-            SnakeHead { row: 8, column: 8 },
-        ],
+pub struct Settings {
+    width: u32, // width of the game screen
+    height: u32, // height of the game screen
+    cols: u32, // number of columns across
+    rows: u32, // number of rows top to bottom
+    cell_width: u32, // how wide cells should be (width / cols)
+    font_path: String, // path to the font to use
+    font_size: u16, // font size
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Settings {
+            width: 720,
+            height: 720,
+            cols: 36,
+            rows: 36,
+            cell_width: 720 / 36,
+            font_path: "/System/Library/Fonts/SFNSMono.ttf".into(),
+            font_size: 18,
+        }
     }
 }
 
-// is this what I need?
-// #[derive(Debug)]
-// pub enum Validity {
-//     Valid,
-//     OutOfBounds,
-//     SelfCollision,
-// }
+pub struct Game<'a> {
+    settings: Settings,
+    // internal state
+    canvas: Canvas<Window>,
+    events: EventPump,
+    texture_creator: TextureCreator<WindowContext>,
+    rng: ThreadRng,
+    font: Font<'a,'a>,
+    // game specific fields
+    grid: Grid,
+    snake: Snake,
+    dot: Dot,
+    direction: Direction,
+    paused: bool,
+}
 
-pub fn update_snake_pos(snake: &mut Snake, direction: &Direction) {
-    use Direction::*;
-    let (x, y) = match *direction {
-        Up => (0, -1),
-        Down => (0, 1),
-        Left => (-1, 0),
-        Right => (1, 0),
-    };
-    let mut head = snake.path[0].clone();
-    head.row += x;
-    head.column += y;
-    snake.path.insert(0, head);
-    while snake.len < snake.path.len() {
-        snake.path.pop();
+pub fn init_canvas(width: u32, height: u32) -> (Canvas<Window>, EventPump, TextureCreator<WindowContext>) {
+    let sdl_context = sdl2::init().unwrap();
+    let video_subsystem = sdl_context.video().unwrap();
+
+    let window = video_subsystem
+        .window("Game", width + 1, height + 1)
+        .position_centered()
+        .opengl()
+        .build()
+        .unwrap();
+
+    let mut canvas = window.into_canvas().present_vsync().build().unwrap();
+
+    canvas.set_draw_color(Color::RGB(0, 0, 0));
+    canvas.clear();
+    canvas.present();
+
+    let texture_creator = canvas.texture_creator();
+    let event_pump = sdl_context.event_pump().unwrap();
+    (canvas, event_pump, texture_creator)
+}
+
+impl<'ttf> Game<'ttf> {
+    fn init_from_settings(settings: Settings, ttf_context: &'ttf Sdl2TtfContext) -> Self {
+        let (canvas, events, texture_creator) = init_canvas(settings.width, settings.height);
+        let mut rng = thread_rng();
+
+        let mut font = ttf_context.load_font(&settings.font_path, settings.font_size).expect("failed to load font");
+        font.set_style(sdl2::ttf::FontStyle::NORMAL);
+
+        let grid = grid_init(settings.rows, settings.cols);
+        let direction = Direction::Right;
+        let snake = Snake::default();
+        let dot = Dot::random_pos(settings.rows, settings.cols, &snake, &mut rng);
+        let paused = false;
+
+        Game {
+            settings,
+
+            canvas,
+            events,
+            texture_creator,
+            font,
+            rng,
+
+            grid,
+            direction,
+            snake,
+            dot,
+            paused,
+        }
+    }
+}
+
+impl Default for Snake {
+    fn default() -> Self {
+        Snake {
+            len: 4, // initial snake length
+            color: Cell {
+                // cell color
+                red: 200_u8,
+                green: 0_u8,
+                blue: 100_u8,
+            },
+            path: vec![
+                // initial snake pos
+                SnakeHead { row: 8, column: 8 },
+            ],
+        }
+    }
+}
+
+impl Snake {
+    pub fn update_pos(&mut self, direction: &Direction) {
+        use Direction::*;
+        let (x, y) = match *direction {
+            Up => (0, -1),
+            Down => (0, 1),
+            Left => (-1, 0),
+            Right => (1, 0),
+        };
+        let mut head = self.path[0].clone();
+        head.row += x;
+        head.column += y;
+        self.path.insert(0, head);
+        while self.len < self.path.len() {
+            self.path.pop();
+        }
     }
 }
 
@@ -100,7 +190,7 @@ pub fn check_snake_pos(snake: &Snake, rows: u32, columns: u32) -> bool {
 
     // check that snake is not colliding with itself
     // check each of the positions in the snake's path
-    // (skipping the initial segment)
+    // (skipping the head segment)
     for segment in snake.path.iter().skip(1) {
         if segment == head {
             return false;
@@ -183,55 +273,32 @@ pub fn grid_init(nx_cells: u32, ny_cells: u32) -> Grid {
     Grid { grid: grid_vector }
 }
 
-pub fn init_dot(rows: u32, columns: u32, snake: &Snake) -> Dot {
-   let mut rng = thread_rng();
-    // don't put the dot off the grid
-   let mut row: i32 = rng.gen_range(0..rows) as i32;
-   let mut column: i32 = rng.gen_range(0..columns) as i32;
+impl Dot {
+    pub fn random_pos(rows: u32, columns: u32, snake: &Snake, rng: &mut ThreadRng) -> Dot {
+        // don't put the dot off the grid
+        let mut row: i32 = rng.gen_range(0..rows) as i32;
+        let mut column: i32 = rng.gen_range(0..columns) as i32;
 
-   // don't put the dot on the snake
-   while on_snake(row, column, &snake) {
-      row = rng.gen_range(0..rows) as i32;
-      column = rng.gen_range(0..columns) as i32;
-   }
+        // don't put the dot on the snake
+        while Dot::on_snake(row, column, &snake) {
+            row = rng.gen_range(0..rows) as i32;
+            column = rng.gen_range(0..columns) as i32;
+        }
 
-   Dot {
-        row,
-        column,
-        color: Cell { red: 255, green: 255, blue: 255, },
+        Dot {
+            row,
+            column,
+            color: Cell { red: 255, green: 255, blue: 255, },
+        }
     }
-}
 
-fn on_snake(row: i32, column: i32, snake: &Snake) -> bool {
-   snake.path.iter().any(|segment| segment.row == row && segment.column == column) 
+    fn on_snake(row: i32, column: i32, snake: &Snake) -> bool {
+        snake.path.iter().any(|segment| segment.row == row && segment.column == column) 
+    }
 }
 
 pub fn draw_dot_on_grid(grid: &mut Grid, dot: &Dot) {
    grid.grid[dot.row as usize][dot.column as usize] = dot.color.clone(); 
-}
-
-pub fn init(width: u32, height: u32) -> (Canvas<Window>, EventPump, TextureCreator<WindowContext>) {
-    let sdl_context = sdl2::init().unwrap();
-    let video_subsystem = sdl_context.video().unwrap();
-
-    let window = video_subsystem
-        .window("Game", width + 1, height + 1)
-        .position_centered()
-        .opengl()
-        // .allow_highdpi()
-        .build()
-        .unwrap();
-
-    let mut canvas = window.into_canvas().present_vsync().build().unwrap();
-
-    canvas.set_draw_color(Color::RGB(0, 0, 0));
-    canvas.clear();
-    canvas.present();
-
-    let texture_creator = canvas.texture_creator();
-
-    let event_pump = sdl_context.event_pump().unwrap();
-    (canvas, event_pump, texture_creator)
 }
 
 // render text onto a canvas given a font
@@ -252,27 +319,14 @@ pub fn display_message(message: &str, font: &Font, texture_creator: &TextureCrea
     canvas.copy(&texture, None, Some(target))?;
     Ok(())
 }
-static FONT_PATH: &str = "/System/Library/Fonts/SFNSMono.ttf";
 
 fn main() {
-    let canvas_width = 720_u32;
-    let canvas_height = 720_u32;
-    let columns = 36;
-    let rows = 36;
-    let cell_width = canvas_width / columns;
-
-    let (mut canvas, mut events, texture_creator) = init(canvas_width, canvas_height);
+    let settings = Settings::default();
     let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string()).expect("failed to init ttf module");
-    let font_size = 18;
-    let mut font = ttf_context.load_font(FONT_PATH, font_size).expect("failed to load font");
-    font.set_style(sdl2::ttf::FontStyle::NORMAL);
-    let mut grid;
-    let mut direction = Direction::Right;
-    let mut snake = init_snake();
-    let mut dot = init_dot(rows, columns, &snake);
-    let mut paused = false;
+    let mut game = Game::init_from_settings(settings, &ttf_context);
+
     'game: loop {
-        for event in events.poll_iter() {
+        for event in game.events.poll_iter() {
             // dbg!(&event);
             match event {
                 Event::KeyDown {
@@ -285,24 +339,24 @@ fn main() {
                     ..
                 } => {
                     dbg!("paused");
-                    paused = !paused;
+                    game.paused = !game.paused;
                 }
                 Event::KeyDown { keycode, .. } => {
-                    if paused {
+                    if game.paused {
                         continue 'game;
                     }
                     match keycode {
                         Some(Keycode::Up) => {
-                            direction = Direction::Up;
+                            game.direction = Direction::Up;
                         }
                         Some(Keycode::Down) => {
-                            direction = Direction::Down;
+                            game.direction = Direction::Down;
                         }
                         Some(Keycode::Left) => {
-                            direction = Direction::Left;
+                            game.direction = Direction::Left;
                         }
                         Some(Keycode::Right) => {
-                            direction = Direction::Right;
+                            game.direction = Direction::Right;
                         }
                         _ => continue 'game,
                     };
@@ -310,24 +364,24 @@ fn main() {
                 _ => continue 'game,
             }
         }
-        if !paused {
-            grid = grid_init(columns, rows);
-            update_snake_pos(&mut snake, &direction);
-            let valid = check_snake_pos(&snake, rows, columns);
+        if !game.paused {
+            game.grid = grid_init(game.settings.cols, game.settings.rows);
+            game.snake.update_pos(&game.direction);
+            let valid = check_snake_pos(&game.snake, game.settings.rows, game.settings.cols);
             if !valid {
                 dbg!("Hit something");
                 break 'game;
             }
-            let eaten = check_dot(&mut snake, &dot);
+            let eaten = check_dot(&mut game.snake, &game.dot);
             if eaten {
-                dot = init_dot(rows, columns, &snake);
+                game.dot = Dot::random_pos(game.settings.rows, game.settings.cols, &game.snake, &mut game.rng);
             }
-            draw_snake_on_grid(&mut grid, &snake);
-            draw_dot_on_grid(&mut grid, &dot);
-            display_frame(&mut canvas, &grid, &columns, &rows, &cell_width);
+            draw_snake_on_grid(&mut game.grid, &game.snake);
+            draw_dot_on_grid(&mut game.grid, &game.dot);
+            display_frame(&mut game.canvas, &game.grid, &game.settings.cols, &game.settings.rows, &game.settings.cell_width);
             let message = format!("you have to load the font at a particular point size, dumbass"); 
-            display_message(&message, &font, &texture_creator, &mut canvas, 0, 0).unwrap();
-            canvas.present()
+            display_message(&message, &game.font, &game.texture_creator, &mut game.canvas, 0, 0).unwrap();
+            game.canvas.present()
         }
         thread::sleep(time::Duration::from_millis(80));
     }
