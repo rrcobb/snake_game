@@ -46,6 +46,17 @@ from https://snake.rustbridge.com/
 
 ### TODO
 
+- some refactoring
+    - grid to store cols and rows?
+    - state object for the game?
+    - somewhere to keep arbitrary consts (Settings struct?)
+    - associated methods instead of free ones?
+    - somewhere to keep shared initialized stuff (rng, font, canvas, eventpump,
+        texturecreator, etc)
+    - rename the _init functions to something else
+      - impl default?
+      - or ::new
+
 - text
     - start screen
       - So, before the event loop starts?
@@ -57,13 +68,7 @@ from https://snake.rustbridge.com/
 - respond to click events on a menu
 - wrap at the edges (currently, die at edges)
 - snake color
-
-- some refactoring
-    - grid to store cols and rows?
-    - state object for the game?
-    - somewhere to keep arbitrary consts (Settings struct?)
-    - associated methods instead of free ones?
-    - rename the _init functions to something else
+- refactor to separate concepts of snake speed and frames
 
 possible:
 - speed increase when eat a dot?
