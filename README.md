@@ -44,21 +44,20 @@ from https://snake.rustbridge.com/
 - don't place the dot on the snake
 - show text on the screen
 
-### TODO
-
-- some refactoring
+- refactoring
     - state object for the game
     - somewhere to keep shared initialized stuff (rng, font, canvas, eventpump,
         texturecreator, etc)
     - somewhere to keep arbitrary consts - Settings struct
-    - associated methods instead of free ones
-    - do away with the grid
-    - rename the _init functions to something else
-      - or ::new
-      - impl default
+
+### TODO
+
+- some refactoring
+    - do away with the grid?
 
 - text
-    - scores
+    - score
+    - ongoing, plus high scores
     - start screen
       - So, before the event loop starts?
     - end screen
