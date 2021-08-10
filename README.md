@@ -63,13 +63,13 @@ from https://snake.rustbridge.com/
         - Need to keep the snake on the grid
         - need to animate the snake between the cells
         - need to only update the snake's actual _cell_ once per 5 renders
-
-### TODO
-
 - smooth animation
     - remove explicit grid, do drawing without the grid
     - "implicit grid!"
-- some refactoring
+
+### TODO
+
+- fix snake jitter (animate in the direction of the next cell!)
 - score
   - ongoing, plus high scores
   - start screen

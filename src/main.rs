@@ -18,10 +18,6 @@ pub struct Cell {
     pub blue: u8,
 }
 
-pub struct Grid {
-    pub grid: Vec<Vec<Cell>>,
-}
-
 #[derive(Clone, Debug)]
 pub struct Dot {
     pub row: i32,
@@ -133,7 +129,7 @@ impl Default for Settings {
         let frames_per_cell = 5;
 
         Settings {
-            // square grid
+            // square cells
             width,
             height: width,
             cols,
@@ -164,7 +160,6 @@ pub struct Game<'a> {
     font: Font<'a, 'a>,
     // game specific fields
     status: Status,
-    grid: Grid,
     snake: Snake,
     dot: Dot,
     direction: Direction,
@@ -180,7 +175,6 @@ impl<'ttf> Game<'ttf> {
             .expect("failed to load font");
         font.set_style(sdl2::ttf::FontStyle::NORMAL);
 
-        let grid = Grid::new(settings.rows, settings.cols);
         let direction = Direction::Right;
         let snake = Snake::default();
         let dot = Dot::random_pos(settings.rows, settings.cols, &snake, &mut rng);
@@ -195,7 +189,6 @@ impl<'ttf> Game<'ttf> {
             font,
             rng,
 
-            grid,
             direction,
             snake,
             dot,
@@ -226,23 +219,6 @@ impl<'ttf> Game<'ttf> {
         let texture_creator = canvas.texture_creator();
         let event_pump = sdl_context.event_pump().unwrap();
         (canvas, event_pump, texture_creator)
-    }
-}
-
-impl Grid {
-    fn new(rows: u32, cols: u32) -> Grid {
-        let mut grid_vector = Vec::new();
-        for row in 0..rows {
-            grid_vector.push(Vec::new());
-            for _column in 0..cols {
-                grid_vector[row as usize].push(Cell {
-                    red: 35_u8,
-                    green: 15_u8,
-                    blue: 13_u8,
-                });
-            }
-        }
-        Grid { grid: grid_vector }
     }
 }
 
@@ -370,10 +346,6 @@ impl Game<'_> {
         self.canvas.present();
     }
 
-    fn clear_grid(&mut self) {
-        self.grid = Grid::new(self.settings.cols, self.settings.rows);
-    }
-
     fn tick(&mut self) {
         self.snake.update_pos(&self.direction);
 
@@ -388,9 +360,7 @@ impl Game<'_> {
     }
 
     pub fn draw(&mut self, frame: i32) {
-        self.clear_grid();
-        self.draw_dot_on_grid();
-        self.display_frame();
+        self.draw_dot();
         self.draw_snake(frame);
     }
 
@@ -441,38 +411,22 @@ impl Game<'_> {
         }
     }
 
-    pub fn draw_dot_on_grid(&mut self) {
+    pub fn draw_dot(&mut self) {
         let Dot { row, column, color } = &self.dot;
-        self.grid.grid[*row as usize][*column as usize] = color.clone();
+        self.canvas.set_draw_color(Color::RGB(color.red, color.green, color.blue));
+        let width = self.settings.cell_width;
+        let x = width as i32 * row;
+        let y = width as i32 * column;
+
+        match self.canvas.fill_rect(Rect::new(x, y, width, width)) {
+            Ok(_) => {}
+            Err(error) => panic!("{}", error),
+        }
     }
 
     pub fn clear_screen(&mut self) {
         self.canvas.set_draw_color(Color::RGB(0, 0, 0));
         self.canvas.clear();
-    }
-
-    pub fn display_frame(&mut self) {
-        for row in 0..self.settings.rows {
-            for column in 0..self.settings.cols {
-                self.display_cell(row, column);
-            }
-        }
-    }
-
-    pub fn display_cell(&mut self, row: u32, col: u32) {
-        let grid = &self.grid.grid;
-        let cell = &grid[row as usize][col as usize];
-        let drawing_color = Color::RGB(cell.red, cell.green, cell.blue);
-        self.canvas.set_draw_color(drawing_color);
-
-        let width = self.settings.cell_width;
-        let x = (width * row) as i32;
-        let y = (width * col) as i32;
-        // assume square cells, where cell_width == cell_height
-        match self.canvas.fill_rect(Rect::new(x, y, width, width)) {
-            Ok(_) => {}
-            Err(error) => panic!("{}", error),
-        }
     }
 
     // render text at the given location
