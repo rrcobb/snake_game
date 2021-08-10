@@ -53,6 +53,17 @@ from https://snake.rustbridge.com/
 ### TODO
 
 - some refactoring
+    - game loop: 
+      - add a game state enum
+        - instead of needing to panic to break
+      - Options for game loop: 
+        1 Sleep for 1/framerate, minus time it took to update the state / render
+          - https://gameprogrammingpatterns.com/game-loop.html#take-a-little-nap
+        2 Update by fluid amount of game seconds
+          - https://gameprogrammingpatterns.com/game-loop.html#one-small-step,-one-giant-step
+        3 update with fixed time step, render variable time step
+          - https://gameprogrammingpatterns.com/game-loop.html#play-catch-up
+        - Probably want 1, since it's simple and we don't have to mess with it
     - do away with the grid?
 
 - text
@@ -67,6 +78,7 @@ from https://snake.rustbridge.com/
 - respond to click events on a menu
 - wrap at the edges (currently, die at edges)
 - snake color
+- snake sprite
 - refactor to separate concepts of snake speed and frames
 
 possible:

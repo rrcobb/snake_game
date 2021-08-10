@@ -134,6 +134,13 @@ impl Default for Settings {
     }
 }
 
+#[derive(PartialEq)]
+enum Status {
+    Running,
+    Paused,
+    Over,
+}
+
 pub struct Game<'a> {
     settings: Settings,
     // internal state
@@ -143,11 +150,11 @@ pub struct Game<'a> {
     rng: ThreadRng,
     font: Font<'a, 'a>,
     // game specific fields
+    status: Status,
     grid: Grid,
     snake: Snake,
     dot: Dot,
     direction: Direction,
-    paused: bool,
 }
 
 impl<'ttf> Game<'ttf> {
@@ -164,7 +171,7 @@ impl<'ttf> Game<'ttf> {
         let direction = Direction::Right;
         let snake = Snake::default();
         let dot = Dot::random_pos(settings.rows, settings.cols, &snake, &mut rng);
-        let paused = false;
+        let status = Status::Running;
 
         Game {
             settings,
@@ -179,7 +186,7 @@ impl<'ttf> Game<'ttf> {
             direction,
             snake,
             dot,
-            paused,
+            status,
         }
     }
 
@@ -264,77 +271,101 @@ fn main() {
         .expect("failed to init ttf module");
     let game = Game::init_from_settings(settings, &ttf_context);
 
-    game.run();
+    game.looop();
 }
 
 impl Game<'_> {
-    fn run(mut self) {
-        'running: loop {
-            for event in self.events.poll_iter() {
-                // dbg!(&event);
-                match event {
-                    Event::KeyDown {
-                        keycode: Some(Keycode::Escape),
-                        ..
-                    }
-                    | Event::Quit { .. } => break 'running,
-                    Event::KeyDown {
-                        keycode: Some(Keycode::Space),
-                        ..
-                    } => {
-                        dbg!("paused");
-                        self.paused = !self.paused;
-                    }
-                    Event::KeyDown { keycode, .. } => {
-                        if self.paused {
-                            continue 'running;
-                        }
-                        match keycode {
-                            Some(Keycode::Up) => {
-                                self.direction = Direction::Up;
-                            }
-                            Some(Keycode::Down) => {
-                                self.direction = Direction::Down;
-                            }
-                            Some(Keycode::Left) => {
-                                self.direction = Direction::Left;
-                            }
-                            Some(Keycode::Right) => {
-                                self.direction = Direction::Right;
-                            }
-                            _ => continue 'running,
-                        };
-                    }
-                    _ => continue 'running,
-                }
-            }
-            self.clear_frame();
-            if !self.paused {
-                self.tick();
-            }
-            self.draw();
-            self.display_message("showing a message is easy, ish, now", 0, 0)
-                .unwrap();
-            self.canvas.present();
+    fn looop(mut self) {
+        while self.status != Status::Over {
+            self.process_input();
+            self.update();
+            self.render();
+
             thread::sleep(time::Duration::from_millis(80));
         }
     }
 
-    fn tick(&mut self) {
+    fn process_input(&mut self) {
+        for event in self.events.poll_iter() {
+            // dbg!(&event);
+            match event {
+                Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                }
+                | Event::Quit { .. } => {
+                    self.status = Status::Over;
+                }
+                Event::KeyDown {
+                    keycode: Some(Keycode::Space),
+                    ..
+                } => {
+                    // toggle pause
+                    match self.status {
+                        Status::Running => self.status = Status::Paused,
+                        Status::Paused => self.status = Status::Running,
+                        _ => (),
+                    }
+                }
+                Event::KeyDown { keycode, .. } => {
+                    if self.status == Status::Paused {
+                        // don't change direction when paused
+                        continue;
+                    }
+                    match keycode {
+                        Some(Keycode::Up) => {
+                            self.direction = Direction::Up;
+                        }
+                        Some(Keycode::Down) => {
+                            self.direction = Direction::Down;
+                        }
+                        Some(Keycode::Left) => {
+                            self.direction = Direction::Left;
+                        }
+                        Some(Keycode::Right) => {
+                            self.direction = Direction::Right;
+                        }
+                        _ => (),
+                    };
+                }
+                _ => (),
+            }
+        }
+    }
+
+    fn update(&mut self) {
+        if self.status != Status::Paused {
+            self.tick();
+        }
+    }
+
+    fn render(&mut self) {
+        self.clear_frame();
+        self.draw();
+        self.display_message("showing a message is easy, ish, now", 0, 0)
+            .unwrap();
+        self.canvas.present();
+    }
+
+    fn clear_grid(&mut self) {
         self.grid = Grid::new(self.settings.cols, self.settings.rows);
+    }
+
+    fn tick(&mut self) {
         self.snake.update_pos(&self.direction);
 
         let valid = self.snake.check_pos(self.settings.rows, self.settings.cols);
         if !valid {
-            panic!("Hit something");
+            self.status = Status::Over;
+            return;
         }
-        let eaten = self.check_dot();
-        if eaten {
+        if self.check_dot() {
             self.dot = self.random_dot();
         }
     }
 
     pub fn draw(&mut self) {
+        self.clear_grid();
         self.draw_snake_on_grid();
         self.draw_dot_on_grid();
         self.display_frame();
