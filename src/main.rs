@@ -11,6 +11,16 @@ use sdl2::ttf::{Font, Sdl2TtfContext};
 use sdl2::video::{Window, WindowContext};
 use sdl2::EventPump;
 
+fn main() {
+    let settings = Settings::default();
+    let ttf_context = sdl2::ttf::init()
+        .map_err(|e| e.to_string())
+        .expect("failed to init ttf module");
+    let game = Game::init_from_settings(settings, &ttf_context);
+
+    game.looop();
+}
+
 #[derive(Clone, Debug)]
 pub struct Cell {
     pub red: u8,
@@ -122,8 +132,8 @@ impl Default for Settings {
         let width = 720;
         let cols = 36;
         let cell_width = width / cols;
-        // 120fps
-        let ms_per_frame = 8;
+        // 60fps
+        let ms_per_frame = 16;
         // effective "game speed"
         // how many frames do you see in the time it takes for the snake to cross a cell
         let frames_per_cell = 5;
@@ -222,48 +232,6 @@ impl<'ttf> Game<'ttf> {
     }
 }
 
-impl Dot {
-    pub fn random_pos(rows: u32, columns: u32, snake: &Snake, rng: &mut ThreadRng) -> Dot {
-        // don't put the dot out of bounds
-        let mut row: i32 = rng.gen_range(0..rows) as i32;
-        let mut column: i32 = rng.gen_range(0..columns) as i32;
-
-        // don't put the dot on the snake
-        while Dot::on_snake(row, column, snake) {
-            row = rng.gen_range(0..rows) as i32;
-            column = rng.gen_range(0..columns) as i32;
-        }
-
-        Dot {
-            row,
-            column,
-            color: Cell {
-                red: 255,
-                green: 255,
-                blue: 255,
-            },
-        }
-    }
-
-    fn on_snake(row: i32, column: i32, snake: &Snake) -> bool {
-        snake
-            .path
-            .iter()
-            .any(|segment| segment.row == row && segment.column == column)
-    }
-}
-
-fn main() {
-    let settings = Settings::default();
-    let ttf_context = sdl2::ttf::init()
-        .map_err(|e| e.to_string())
-        .expect("failed to init ttf module");
-    let game = Game::init_from_settings(settings, &ttf_context);
-
-    game.looop();
-}
-
-
 impl Game<'_> {
     fn looop(mut self) {
         let mut frame: i32 = 0; 
@@ -271,15 +239,21 @@ impl Game<'_> {
             let start = Instant::now();
 
             self.process_input();
-            if frame % self.settings.frames_per_cell == 0 {
-                self.update();
+
+            if self.status == Status::Running {
+                if frame % self.settings.frames_per_cell == 0 {
+                    self.update();
+                }
+                self.render(frame % self.settings.frames_per_cell);
+                frame = frame.wrapping_add(1);
             }
-            self.render(frame % self.settings.frames_per_cell);
-            frame = frame.wrapping_add(1);
 
             let elapsed = start.elapsed();
             if elapsed < Duration::from_millis(self.settings.ms_per_frame) {
                 thread::sleep(Duration::from_millis(self.settings.ms_per_frame) - elapsed);
+                dbg!("sleeping", elapsed);
+            } else {
+                dbg!("no sleep", elapsed);
             }
         }
     }
@@ -448,3 +422,36 @@ impl Game<'_> {
         Ok(())
     }
 }
+
+
+impl Dot {
+    pub fn random_pos(rows: u32, columns: u32, snake: &Snake, rng: &mut ThreadRng) -> Dot {
+        // don't put the dot out of bounds
+        let mut row: i32 = rng.gen_range(0..rows) as i32;
+        let mut column: i32 = rng.gen_range(0..columns) as i32;
+
+        // don't put the dot on the snake
+        while Dot::on_snake(row, column, snake) {
+            row = rng.gen_range(0..rows) as i32;
+            column = rng.gen_range(0..columns) as i32;
+        }
+
+        Dot {
+            row,
+            column,
+            color: Cell {
+                red: 255,
+                green: 255,
+                blue: 255,
+            },
+        }
+    }
+
+    fn on_snake(row: i32, column: i32, snake: &Snake) -> bool {
+        snake
+            .path
+            .iter()
+            .any(|segment| segment.row == row && segment.column == column)
+    }
+}
+

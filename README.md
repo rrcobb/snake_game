@@ -70,13 +70,14 @@ from https://snake.rustbridge.com/
 ### TODO
 
 - fix snake jitter (animate in the direction of the next cell!)
+- maybe refactor: render_cell from draw_snake and draw_dot
 - score
   - ongoing, plus high scores
   - start screen
     - So, before the event loop starts?
   - end screen
     - So, after the event loop ends?
-  - framerate
+  - framerate (seems fixed ~16ms)
 - show a menu, handle menu navigation keyboard events
 - respond to click events on a menu
 - wrap at the edges (currently, die at edges)
