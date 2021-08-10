@@ -1,5 +1,5 @@
 use std::thread;
-use std::time;
+use std::time::{Duration, Instant};
 
 use rand::{rngs::ThreadRng, thread_rng, Rng};
 use sdl2::event::Event;
@@ -115,19 +115,32 @@ pub struct Settings {
     cols: u32,         // number of columns across
     rows: u32,         // number of rows top to bottom
     cell_width: u32,   // how wide cells should be (width / cols)
+    frames_per_cell: i32,
+    ms_per_frame: u64,
     font_path: String, // path to the font to use
     font_size: u16,    // font size
 }
 
 impl Default for Settings {
     fn default() -> Self {
+        let width = 720;
+        let cols = 36;
+        let cell_width = width / cols;
+        // 120fps
+        let ms_per_frame = 8;
+        // effective "game speed"
+        // how many frames do you see in the time it takes for the snake to cross a cell
+        let frames_per_cell = 5;
+
         Settings {
-            width: 720,
-            height: 720,
-            cols: 36,
-            rows: 36,
-            // width / number of rows
-            cell_width: 720 / 36,
+            // square grid
+            width,
+            height: width,
+            cols,
+            rows: cols,
+            cell_width,
+            ms_per_frame,
+            frames_per_cell,
             font_path: "/System/Library/Fonts/SFNSMono.ttf".into(),
             font_size: 18,
         }
@@ -274,14 +287,24 @@ fn main() {
     game.looop();
 }
 
+
 impl Game<'_> {
     fn looop(mut self) {
+        let mut frame: i32 = 0; 
         while self.status != Status::Over {
-            self.process_input();
-            self.update();
-            self.render();
+            let start = Instant::now();
 
-            thread::sleep(time::Duration::from_millis(80));
+            self.process_input();
+            if frame % self.settings.frames_per_cell == 0 {
+                self.update();
+            }
+            self.render(frame % self.settings.frames_per_cell);
+            frame = frame.wrapping_add(1);
+
+            let elapsed = start.elapsed();
+            if elapsed < Duration::from_millis(self.settings.ms_per_frame) {
+                thread::sleep(Duration::from_millis(self.settings.ms_per_frame) - elapsed);
+            }
         }
     }
 
@@ -339,9 +362,9 @@ impl Game<'_> {
         }
     }
 
-    fn render(&mut self) {
-        self.clear_frame();
-        self.draw();
+    fn render(&mut self, frame: i32) {
+        self.clear_screen();
+        self.draw(frame);
         self.display_message("showing a message is easy, ish, now", 0, 0)
             .unwrap();
         self.canvas.present();
@@ -364,11 +387,11 @@ impl Game<'_> {
         }
     }
 
-    pub fn draw(&mut self) {
+    pub fn draw(&mut self, frame: i32) {
         self.clear_grid();
-        self.draw_snake_on_grid();
         self.draw_dot_on_grid();
         self.display_frame();
+        self.draw_snake(frame);
     }
 
     pub fn check_dot(&mut self) -> bool {
@@ -392,10 +415,29 @@ impl Game<'_> {
         )
     }
 
-    pub fn draw_snake_on_grid(&mut self) {
-        let color = self.snake.color.clone();
+    pub fn draw_snake(&mut self, frame: i32) {
+        // shift in the direction of movement, for animation
+        use Direction::*;
+        let (x_shift, y_shift) = match self.direction {
+            Up => (0, -1),
+            Down => (0, 1),
+            Left => (-1, 0),
+            Right => (1, 0),
+        };
+
+        let width = self.settings.cell_width;
+        let offset = (width as i32) / self.settings.frames_per_cell * frame;
+
+        let sc = &self.snake.color;
+        self.canvas.set_draw_color(Color::RGB(sc.red, sc.green, sc.blue));
+
         for link in self.snake.path.iter() {
-            self.grid.grid[link.row as usize][link.column as usize] = color.clone();
+            let x = x_shift * offset + width as i32 * link.row;
+            let y = y_shift * offset + width as i32 * link.column;
+            match self.canvas.fill_rect(Rect::new(x, y, width, width)) {
+                Ok(_) => {}
+                Err(error) => panic!("{}", error),
+            }
         }
     }
 
@@ -404,7 +446,7 @@ impl Game<'_> {
         self.grid.grid[*row as usize][*column as usize] = color.clone();
     }
 
-    pub fn clear_frame(&mut self) {
+    pub fn clear_screen(&mut self) {
         self.canvas.set_draw_color(Color::RGB(0, 0, 0));
         self.canvas.clear();
     }
@@ -419,16 +461,15 @@ impl Game<'_> {
 
     pub fn display_cell(&mut self, row: u32, col: u32) {
         let grid = &self.grid.grid;
-        let width = &self.settings.cell_width;
-        let x = (width * row) as i32;
-        let y = (width * col) as i32;
-
         let cell = &grid[row as usize][col as usize];
         let drawing_color = Color::RGB(cell.red, cell.green, cell.blue);
-
         self.canvas.set_draw_color(drawing_color);
+
+        let width = self.settings.cell_width;
+        let x = (width * row) as i32;
+        let y = (width * col) as i32;
         // assume square cells, where cell_width == cell_height
-        match self.canvas.fill_rect(Rect::new(x, y, *width, *width)) {
+        match self.canvas.fill_rect(Rect::new(x, y, width, width)) {
             Ok(_) => {}
             Err(error) => panic!("{}", error),
         }

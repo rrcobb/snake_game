@@ -49,14 +49,10 @@ from https://snake.rustbridge.com/
     - somewhere to keep shared initialized stuff (rng, font, canvas, eventpump,
         texturecreator, etc)
     - somewhere to keep arbitrary consts - Settings struct
-
-### TODO
-
-- some refactoring
+    - add a game state enum
+      - instead of needing to panic to break
     - game loop: 
-      - add a game state enum
-        - instead of needing to panic to break
-      - Options for game loop: 
+    - Options for game loop: 
         1 Sleep for 1/framerate, minus time it took to update the state / render
           - https://gameprogrammingpatterns.com/game-loop.html#take-a-little-nap
         2 Update by fluid amount of game seconds
@@ -64,16 +60,23 @@ from https://snake.rustbridge.com/
         3 update with fixed time step, render variable time step
           - https://gameprogrammingpatterns.com/game-loop.html#play-catch-up
         - Probably want 1, since it's simple and we don't have to mess with it
-    - do away with the grid?
+        - Need to keep the snake on the grid
+        - need to animate the snake between the cells
+        - need to only update the snake's actual _cell_ once per 5 renders
 
-- text
-    - score
-    - ongoing, plus high scores
-    - start screen
-      - So, before the event loop starts?
-    - end screen
-     - So, after the event loop ends?
-    - frames
+### TODO
+
+- smooth animation
+    - remove explicit grid, do drawing without the grid
+    - "implicit grid!"
+- some refactoring
+- score
+  - ongoing, plus high scores
+  - start screen
+    - So, before the event loop starts?
+  - end screen
+    - So, after the event loop ends?
+  - framerate
 - show a menu, handle menu navigation keyboard events
 - respond to click events on a menu
 - wrap at the edges (currently, die at edges)
