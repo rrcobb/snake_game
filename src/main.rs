@@ -160,6 +160,7 @@ impl Default for Settings {
 
 #[derive(PartialEq)]
 enum Status {
+    Start,
     Running,
     Paused,
     Over,
@@ -168,6 +169,7 @@ enum Status {
 pub struct Game<'a> {
     settings: Settings,
     // internal state
+    frame: i32,
     canvas: Canvas<Window>,
     events: EventPump,
     texture_creator: TextureCreator<WindowContext>,
@@ -194,6 +196,7 @@ impl<'ttf> Game<'ttf> {
 
         Game {
             settings,
+            frame: 0,
             canvas,
             events,
             texture_creator,
@@ -202,7 +205,7 @@ impl<'ttf> Game<'ttf> {
             snake, 
             dot,
             direction: Direction::Right,
-            status: Status::Running,
+            status: Status::Start,
         }
     }
 
@@ -234,19 +237,11 @@ impl<'ttf> Game<'ttf> {
 
 impl Game<'_> {
     fn looop(mut self) {
-        let mut frame: i32 = 0;
         while self.status != Status::Over {
             let start = Instant::now();
 
             self.process_input();
-
-            if self.status == Status::Running {
-                if frame % self.settings.frames_per_cell == 0 {
-                    self.update();
-                }
-                self.render(frame % self.settings.frames_per_cell);
-                frame = frame.wrapping_add(1);
-            }
+            self.update();
 
             let elapsed = start.elapsed();
             if elapsed < Duration::from_millis(self.settings.ms_per_frame) {
@@ -276,7 +271,7 @@ impl Game<'_> {
                     // toggle pause
                     match status {
                         Status::Running => *status = Status::Paused,
-                        Status::Paused => *status = Status::Running,
+                        Status::Paused | Status::Start => *status = Status::Running,
                         _ => (),
                     }
                 }
@@ -301,20 +296,50 @@ impl Game<'_> {
     }
 
     fn update(&mut self) {
-        if self.status != Status::Paused {
-            self.tick();
+        match self.status {
+            Status::Start => self.show_start_menu(),
+            Status::Running => {
+                if self.frame % self.settings.frames_per_cell == 0 {
+                    self.tick();
+                }
+                self.render();
+            },
+            _ => {}
         }
     }
 
-    fn render(&mut self, frame: i32) {
+    fn show_start_menu(&mut self) {
         self.clear_screen();
-        self.draw(frame);
-        self.display_message(&format!("score: {}", self.score()), 0, 0)
-            .unwrap();
-        let speed = 60 / self.settings.frames_per_cell;
-        self.display_message(&format!("speed: {}", speed), 0, 25)
-            .unwrap();
+        let messages = vec!["press space to start"];
+        self.display_centered_messages(messages);
         self.canvas.present();
+    }
+
+    fn render(&mut self) {
+        self.clear_screen();
+        let animation_frame = self.frame % self.settings.frames_per_cell;
+        self.draw(animation_frame);
+        self.show_info();
+        self.canvas.present();
+        self.frame = self.frame.wrapping_add(1);
+    }
+
+    fn show_info(&mut self) {
+        let speed = 60 / self.settings.frames_per_cell;
+        let messages = [
+            format!("score: {}", self.score()),
+            format!("frame: {} {}", self.frame % self.settings.frames_per_cell, self.frame),
+            format!("speed: {}", speed),
+        ];
+        for (i, message) in messages.iter().enumerate() {
+            self.display_message(&message, 0, (i * 25) as i32).unwrap();
+        }
+    }
+
+    fn display_centered_messages(&mut self, messages: Vec<&str>) {
+        for (i, message) in messages.iter().enumerate() {
+            self.display_message(&message, 0, (i * 25) as i32).unwrap();
+        }
     }
 
     fn score(&self) -> usize {
@@ -375,7 +400,7 @@ impl Game<'_> {
         };
 
         let width = self.settings.cell_width;
-        let offset = (width as i32) / self.settings.frames_per_cell * frame;
+        let offset = ((width as i32) / self.settings.frames_per_cell) * frame;
 
         self.canvas.set_draw_color(self.snake.color);
 

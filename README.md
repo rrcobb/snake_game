@@ -4,10 +4,14 @@ from https://snake.rustbridge.com/
 
 ## Notes
 
+### On the original tutorial
+
 - intended for a live session, not a self-led async kind of thing
 - lots of copy/paste coding, maybe that's okay
 - the end result code is kinda bad!
 - we don't make the whole snake game!
+
+### on the code produced as the tutorial endpoint
 
 - all mutable all the time, BABY
 - a little weird about both taking mutable references _and_ returning an updated
@@ -28,13 +32,21 @@ from https://snake.rustbridge.com/
   - using clone
   - dbg!, Clone, Debug
 
+- nice to introduce so that people can build cool things:
+   - sdl2 ttf / font
+   - controlling the speed / game loop
+
 - https://github.com/rustbridge/rusty-snake-book/issues
+
+
+### my own code
 
 - Sticking everything into a big object is a little annoying, mostly bc handling
     the inputs means taking a mutable borrow to the Game object, https://doc.rust-lang.org/nomicon/borrow-splitting.html
     - fixes: 
       - make game state and 'internals' separate
       - push all the events into a buffer 
+    - split object per that page, mutate with e.g. `*direction = x;`
 
 ## Making the game work
 
@@ -88,11 +100,18 @@ from https://snake.rustbridge.com/
 
 - start screen
   - before the event loop starts, probably its own game status
+  - status: Start, shows text in the center
+  - some button press to start the game
+  - necessary refactors: 
+    - move frame into game
+    - make game loop simpler
+    - render differently based on game status
 - end screen
   - after the event loop ends, the Over game status
 - persisted high scores
 - menu? pause menu?
 - show a menu, handle menu navigation keyboard events
+- playable area separated from full window area
 - respond to click events on a menu
 - wrap at the edges (currently, die at edges)
 - snake color
@@ -102,11 +121,12 @@ from https://snake.rustbridge.com/
 - (buffer the input) 
 - pop / burst of bg color when eating dot
 - (user editable) game settings: size, speed, colors, icons?
-- use a worker thread to speed something up?
+- windows build, so keely can download
 - show timing information
 - profiling? care more abt speed and memory use?
   - cache the rng for the dot random location
   - where is the actual speed cost?
+- use a worker thread to speed something up?
 - use some kind of fancy data structure somehow (for what?)
 - tests
 - handle window resize well
