@@ -1,6 +1,5 @@
 use std::thread;
 use std::time::{Duration, Instant};
-
 use rand::{rngs::ThreadRng, thread_rng, Rng};
 use sdl2::{
     event::Event,
@@ -15,26 +14,17 @@ use sdl2::{
 
 fn main() {
     let settings = Settings::default();
-    let ttf_context = sdl2::ttf::init()
-        .map_err(|e| e.to_string())
-        .expect("failed to init ttf module");
+    let ttf_context = sdl2::ttf::init().expect("failed to init ttf module");
     let game = Game::init_from_settings(settings, &ttf_context);
 
     game.looop();
 }
 
 #[derive(Clone, Debug)]
-pub struct Cell {
-    pub red: u8,
-    pub green: u8,
-    pub blue: u8,
-}
-
-#[derive(Clone, Debug)]
 pub struct Dot {
     pub row: i32,
     pub column: i32,
-    pub color: Cell,
+    pub color: Color,
 }
 
 #[derive(Clone, Debug)]
@@ -59,7 +49,7 @@ impl Direction {
 #[derive(Debug)]
 pub struct Snake {
     pub len: usize,
-    pub color: Cell,
+    pub color: Color,
     pub path: Vec<SnakeHead>,
 }
 
@@ -69,17 +59,11 @@ pub struct SnakeHead {
     pub column: i32,
 }
 
-static SNAKE_INIT_LEN: usize = 4;
 impl Default for Snake {
     fn default() -> Self {
         Snake {
             len: SNAKE_INIT_LEN,
-            color: Cell {
-                // cell color
-                red: 200_u8,
-                green: 0_u8,
-                blue: 100_u8,
-            },
+            color: Color::RGB(200, 0, 100),
             path: vec![
                 // initial snake pos
                 SnakeHead { row: 8, column: 8 },
@@ -128,6 +112,9 @@ impl Snake {
         true
     }
 }
+
+// should it be a setting?
+static SNAKE_INIT_LEN: usize = 4;
 
 pub struct Settings {
     width: u32,      // width of the game screen
@@ -202,25 +189,20 @@ impl<'ttf> Game<'ttf> {
             .load_font(&settings.font_path, settings.font_size)
             .expect("failed to load font");
         font.set_style(sdl2::ttf::FontStyle::NORMAL);
-
-        let direction = Direction::Right;
         let snake = Snake::default();
         let dot = Dot::random_pos(settings.rows, settings.cols, &snake, &mut rng);
-        let status = Status::Running;
 
         Game {
             settings,
-
             canvas,
             events,
             texture_creator,
             font,
             rng,
-
-            direction,
-            snake,
+            snake, 
             dot,
-            status,
+            direction: Direction::Right,
+            status: Status::Running,
         }
     }
 
@@ -395,9 +377,7 @@ impl Game<'_> {
         let width = self.settings.cell_width;
         let offset = (width as i32) / self.settings.frames_per_cell * frame;
 
-        let sc = &self.snake.color;
-        self.canvas
-            .set_draw_color(Color::RGB(sc.red, sc.green, sc.blue));
+        self.canvas.set_draw_color(self.snake.color);
 
         for pair in self.snake.path.windows(2) {
             let segment = &pair[0];
@@ -416,8 +396,7 @@ impl Game<'_> {
 
     pub fn draw_dot(&mut self) {
         let Dot { row, column, color } = &self.dot;
-        self.canvas
-            .set_draw_color(Color::RGB(color.red, color.green, color.blue));
+        self.canvas.set_draw_color(*color);
         let width = self.settings.cell_width;
         let x = width as i32 * row;
         let y = width as i32 * column;
@@ -429,7 +408,7 @@ impl Game<'_> {
     }
 
     pub fn clear_screen(&mut self) {
-        self.canvas.set_draw_color(Color::RGB(0, 0, 0));
+        self.canvas.set_draw_color(Color::RGB(0, 0, 0)); // white
         self.canvas.clear();
     }
 
@@ -468,11 +447,7 @@ impl Dot {
         Dot {
             row,
             column,
-            color: Cell {
-                red: 255,
-                green: 255,
-                blue: 255,
-            },
+            color: Color::RGB(255,255,255), // black
         }
     }
 

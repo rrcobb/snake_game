@@ -69,40 +69,41 @@ from https://snake.rustbridge.com/
         - Need to keep the snake on the grid
         - need to animate the snake between the cells
         - need to only update the snake's actual _cell_ once per 5 renders
+- smoother animations
 - smooth animation
     - remove explicit grid, do drawing without the grid
     - "implicit grid!"
     - refactor to separate concepts of snake speed and frames
 - fix snake jitter (animate in the direction of the next cell!)
 - pressing backwards, don't auto-die
+  - make 'backwards' disallowed instead of end of game
 - score
   - ongoing
+- speed increase when eat a dot
+- drop unneeded Cell type
 
 ### TODO
 
-- speed increase when eat a dot
-- high scores
+#### Features
+
 - start screen
-  - So, before the event loop starts?
+  - before the event loop starts, probably its own game status
 - end screen
-  - So, after the event loop ends?
+  - after the event loop ends, the Over game status
+- persisted high scores
+- menu? pause menu?
 - show a menu, handle menu navigation keyboard events
 - respond to click events on a menu
 - wrap at the edges (currently, die at edges)
 - snake color
-- snake sprite
+- snake sprite (head, tail)
     - other sprites (dot, what else?)
-- rainbow mode (change bg color)
+- rainbow mode (change bg color, what other colors)
 - (buffer the input) 
-- pop of color when eating dot
-
-possible:
+- pop / burst of bg color when eating dot
 - (user editable) game settings: size, speed, colors, icons?
-- menu? pause menu?
 - use a worker thread to speed something up?
 - show timing information
-- make 'backwards' disallowed instead of end of game
-- smoother animations
 - profiling? care more abt speed and memory use?
   - cache the rng for the dot random location
   - where is the actual speed cost?
