@@ -154,7 +154,7 @@ impl Default for Settings {
         let cell_width = width / cols;
         // 60 fps
         let ms_per_frame = 16;
-        let frames_per_cell = 5;
+        let frames_per_cell = 6;
 
         Settings {
             width,
@@ -329,6 +329,9 @@ impl Game<'_> {
         self.draw(frame);
         self.display_message(&format!("score: {}", self.score()), 0, 0)
             .unwrap();
+        let speed = 60 / self.settings.frames_per_cell;
+        self.display_message(&format!("speed: {}", speed), 0, 25)
+            .unwrap();
         self.canvas.present();
     }
 
@@ -362,6 +365,9 @@ impl Game<'_> {
         let hit = head.row == dot.row && head.column == dot.column;
         if hit {
             snake.len += 1;
+            if snake.len % 10 == 0 && self.settings.frames_per_cell > 0 {
+                self.settings.frames_per_cell -= 1;
+            }
         }
         hit
     }

@@ -74,27 +74,29 @@ from https://snake.rustbridge.com/
     - "implicit grid!"
     - refactor to separate concepts of snake speed and frames
 - fix snake jitter (animate in the direction of the next cell!)
+- pressing backwards, don't auto-die
+- score
+  - ongoing
 
 ### TODO
 
-- score
-  - ongoing, plus high scores
-  - start screen
-    - So, before the event loop starts?
-  - end screen
-    - So, after the event loop ends?
-- pressing backwards, don't auto-die
+- speed increase when eat a dot
+- high scores
+- start screen
+  - So, before the event loop starts?
+- end screen
+  - So, after the event loop ends?
 - show a menu, handle menu navigation keyboard events
 - respond to click events on a menu
 - wrap at the edges (currently, die at edges)
 - snake color
 - snake sprite
     - other sprites (dot, what else?)
-- speed increase when eat a dot?
+- rainbow mode (change bg color)
 - (buffer the input) 
+- pop of color when eating dot
 
 possible:
-- rainbow mode (change bg color)
 - (user editable) game settings: size, speed, colors, icons?
 - menu? pause menu?
 - use a worker thread to speed something up?
