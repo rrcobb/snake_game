@@ -30,6 +30,12 @@ from https://snake.rustbridge.com/
 
 - https://github.com/rustbridge/rusty-snake-book/issues
 
+- Sticking everything into a big object is a little annoying, mostly bc handling
+    the inputs means taking a mutable borrow to the Game object, https://doc.rust-lang.org/nomicon/borrow-splitting.html
+    - fixes: 
+      - make game state and 'internals' separate
+      - push all the events into a buffer 
+
 ## Making the game work
 
 ### DONE
@@ -66,32 +72,33 @@ from https://snake.rustbridge.com/
 - smooth animation
     - remove explicit grid, do drawing without the grid
     - "implicit grid!"
+    - refactor to separate concepts of snake speed and frames
+- fix snake jitter (animate in the direction of the next cell!)
 
 ### TODO
 
-- fix snake jitter (animate in the direction of the next cell!)
-- maybe refactor: render_cell from draw_snake and draw_dot
 - score
   - ongoing, plus high scores
   - start screen
     - So, before the event loop starts?
   - end screen
     - So, after the event loop ends?
-  - framerate (seems fixed ~16ms)
+- pressing backwards, don't auto-die
 - show a menu, handle menu navigation keyboard events
 - respond to click events on a menu
 - wrap at the edges (currently, die at edges)
 - snake color
 - snake sprite
-- refactor to separate concepts of snake speed and frames
+    - other sprites (dot, what else?)
+- speed increase when eat a dot?
+- (buffer the input) 
 
 possible:
-- speed increase when eat a dot?
-- game settings: size, speed, colors, icons?
+- rainbow mode (change bg color)
+- (user editable) game settings: size, speed, colors, icons?
 - menu? pause menu?
 - use a worker thread to speed something up?
 - show timing information
-- buffer the input so that two keypresses in a row don't auto-die
 - make 'backwards' disallowed instead of end of game
 - smoother animations
 - profiling? care more abt speed and memory use?
@@ -100,3 +107,4 @@ possible:
 - use some kind of fancy data structure somehow (for what?)
 - tests
 - handle window resize well
+- No, for now: refactor: render_cell from draw_snake and draw_dot
