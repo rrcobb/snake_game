@@ -164,6 +164,9 @@ enum Status {
     Running,
     Paused,
     Over,
+    Exit,
+    // poor man's command pattern
+    Restart,
 }
 
 pub struct Game<'a> {
@@ -191,22 +194,31 @@ impl<'ttf> Game<'ttf> {
             .load_font(&settings.font_path, settings.font_size)
             .expect("failed to load font");
         font.set_style(sdl2::ttf::FontStyle::NORMAL);
+
         let snake = Snake::default();
         let dot = Dot::random_pos(settings.rows, settings.cols, &snake, &mut rng);
 
         Game {
-            settings,
-            frame: 0,
             canvas,
             events,
             texture_creator,
             font,
+            settings,
+            frame: 0,
             rng,
             snake, 
             dot,
             direction: Direction::Right,
             status: Status::Start,
         }
+    }
+
+    fn restart(&mut self) {
+        self.settings = Settings::default();
+        self.snake = Snake::default();
+        self.dot = Dot::random_pos(self.settings.rows, self.settings.cols, &self.snake, &mut self.rng);
+        self.direction = Direction::Right;
+        self.status = Status::Running;
     }
 
     fn init_canvas(
@@ -237,7 +249,7 @@ impl<'ttf> Game<'ttf> {
 
 impl Game<'_> {
     fn looop(mut self) {
-        while self.status != Status::Over {
+        while self.status != Status::Exit {
             let start = Instant::now();
 
             self.process_input();
@@ -262,7 +274,7 @@ impl Game<'_> {
                     ..
                 }
                 | Event::Quit { .. } => {
-                    *status = Status::Over;
+                    *status = Status::Exit;
                 }
                 Event::KeyDown {
                     keycode: Some(Keycode::Space),
@@ -272,6 +284,9 @@ impl Game<'_> {
                     match status {
                         Status::Running => *status = Status::Paused,
                         Status::Paused | Status::Start => *status = Status::Running,
+                        Status::Over => {
+                            *status = Status::Restart;
+                        },
                         _ => (),
                     }
                 }
@@ -298,6 +313,8 @@ impl Game<'_> {
     fn update(&mut self) {
         match self.status {
             Status::Start => self.show_start_menu(),
+            Status::Over => self.show_end(),
+            Status::Restart => self.restart(),
             Status::Running => {
                 if self.frame % self.settings.frames_per_cell == 0 {
                     self.tick();
@@ -310,7 +327,30 @@ impl Game<'_> {
 
     fn show_start_menu(&mut self) {
         self.clear_screen();
-        let messages = vec!["press space to start"];
+        let messages = vec![
+            "snake",
+            " ", 
+            "arrows to change direction",
+            "eat the dot",
+            "don't die",
+            " ",
+            "[space] to start"
+        ];
+        self.display_centered_messages(messages);
+        self.canvas.present();
+    }
+
+    fn show_end(&mut self) {
+        self.clear_screen();
+        let score = format!("score: {}", self.score());
+        let messages = vec![
+            "game over", 
+            " ", 
+            &score, 
+            " ", 
+            "[esc] to quit",
+            "[space] to restart"
+        ];
         self.display_centered_messages(messages);
         self.canvas.present();
     }
@@ -337,8 +377,13 @@ impl Game<'_> {
     }
 
     fn display_centered_messages(&mut self, messages: Vec<&str>) {
+        let width = self.settings.width;
+        let height = self.settings.height;
+        let center_x = (width / 2) as i32;
+        let mut center_y = (height / 2) as i32;
+        center_y -= messages.len() as i32 * 26 / 2;
         for (i, message) in messages.iter().enumerate() {
-            self.display_message(&message, 0, (i * 25) as i32).unwrap();
+            self.display_message_centered_on(&message, center_x, center_y + (i * 26) as i32).unwrap();
         }
     }
 
@@ -437,7 +482,7 @@ impl Game<'_> {
         self.canvas.clear();
     }
 
-    // render text at the given location
+    // render text at the given x, y coordinates
     pub fn display_message(&mut self, message: &str, x: i32, y: i32) -> Result<(), String> {
         let surface = self
             .font
@@ -450,6 +495,27 @@ impl Game<'_> {
             .map_err(|e| e.to_string())?;
 
         let TextureQuery { width, height, .. } = texture.query();
+
+        let target = Rect::new(x, y, width, height);
+        self.canvas.copy(&texture, None, Some(target))?;
+        Ok(())
+    }
+
+    pub fn display_message_centered_on(&mut self, message: &str, x: i32, y: i32) -> Result<(), String> {
+        let surface = self
+            .font
+            .render(message)
+            .blended(Color::RGBA(255, 0, 0, 255))
+            .map_err(|e| e.to_string())?;
+        let texture = self
+            .texture_creator
+            .create_texture_from_surface(&surface)
+            .map_err(|e| e.to_string())?;
+
+        let TextureQuery { width, height, .. } = texture.query();
+
+        let x = x - (width / 2) as i32;
+        let y = y - (height / 2) as i32;
 
         let target = Rect::new(x, y, width, height);
         self.canvas.copy(&texture, None, Some(target))?;

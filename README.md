@@ -93,11 +93,6 @@ from https://snake.rustbridge.com/
   - ongoing
 - speed increase when eat a dot
 - drop unneeded Cell type
-
-### TODO
-
-#### Features
-
 - start screen
   - before the event loop starts, probably its own game status
   - status: Start, shows text in the center
@@ -108,20 +103,32 @@ from https://snake.rustbridge.com/
     - render differently based on game status
 - end screen
   - after the event loop ends, the Over game status
+  - restart with message
+- centered messages on screens
+
+### TODO
+
+#### Features
+
 - persisted high scores
-- menu? pause menu?
-- show a menu, handle menu navigation keyboard events
+- pause menu
+- handle menu navigation keyboard events
 - playable area separated from full window area
+- hjkl for navigation
 - respond to click events on a menu
-- wrap at the edges (currently, die at edges)
+- settings menu
+- wrap at the edges (currently, die at edges) (as a setting?)
+- (user editable) game settings: size, speed, colors, icons?
 - snake color
 - snake sprite (head, tail)
     - other sprites (dot, what else?)
 - rainbow mode (change bg color, what other colors)
 - (buffer the input) 
 - pop / burst of bg color when eating dot
-- (user editable) game settings: size, speed, colors, icons?
 - windows build, so keely can download
+- handle window resize well
+
+code
 - show timing information
 - profiling? care more abt speed and memory use?
   - cache the rng for the dot random location
@@ -129,5 +136,4 @@ from https://snake.rustbridge.com/
 - use a worker thread to speed something up?
 - use some kind of fancy data structure somehow (for what?)
 - tests
-- handle window resize well
 - No, for now: refactor: render_cell from draw_snake and draw_dot
