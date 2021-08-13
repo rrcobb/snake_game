@@ -111,9 +111,9 @@ from https://snake.rustbridge.com/
 #### Features
 
 - persisted high scores
+- playable area separated from full window area
 - pause menu
 - handle menu navigation keyboard events
-- playable area separated from full window area
 - hjkl for navigation
 - respond to click events on a menu
 - settings menu

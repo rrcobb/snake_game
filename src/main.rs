@@ -1,5 +1,8 @@
 use std::thread;
 use std::time::{Duration, Instant};
+use std::fs;
+use std::io::prelude::*;
+
 use rand::{rngs::ThreadRng, thread_rng, Rng};
 use sdl2::{
     event::Event,
@@ -128,6 +131,7 @@ pub struct Settings {
     ms_per_frame: u64,
     font_path: String, // path to the font to use
     font_size: u16,    // font size
+    save_file: String, // save game location
 }
 
 impl Default for Settings {
@@ -154,6 +158,7 @@ impl Default for Settings {
             frames_per_cell,
             font_path: "/System/Library/Fonts/SFNSMono.ttf".into(),
             font_size: 18,
+            save_file: "./snake_scores.data".into(),
         }
     }
 }
@@ -343,16 +348,28 @@ impl Game<'_> {
     fn show_end(&mut self) {
         self.clear_screen();
         let score = format!("score: {}", self.score());
+        let file = self.read_scores();
+        let scores: Vec<&str> = file.split(',').collect();
         let messages = vec![
             "game over", 
             " ", 
             &score, 
             " ", 
             "[esc] to quit",
-            "[space] to restart"
-        ];
+            "[space] to restart",
+            " ", 
+            "high scores",
+            "---",
+        ].into_iter().chain(scores).collect();
         self.display_centered_messages(messages);
         self.canvas.present();
+    }
+
+    fn read_scores(&self) -> String {
+        match fs::read_to_string(&self.settings.save_file) {
+            Ok(contents) => contents,
+            Err(_) => "(no scores)".into()
+        }
     }
 
     fn render(&mut self) {
@@ -368,7 +385,6 @@ impl Game<'_> {
         let speed = 60 / self.settings.frames_per_cell;
         let messages = [
             format!("score: {}", self.score()),
-            format!("frame: {} {}", self.frame % self.settings.frames_per_cell, self.frame),
             format!("speed: {}", speed),
         ];
         for (i, message) in messages.iter().enumerate() {
@@ -397,11 +413,28 @@ impl Game<'_> {
         let valid = self.snake.check_pos(self.settings.rows, self.settings.cols);
         if !valid {
             self.status = Status::Over;
+            self.update_scores();
             return;
         }
         if self.check_dot() {
             self.dot = self.random_dot();
         }
+    }
+
+    fn update_scores(&self) {
+        let mut old_scores: Vec<usize> = self.read_scores()
+            .split(',')
+            .map(|s| s.parse::<usize>().unwrap_or(0))
+            .collect();
+        let new_score = self.score();
+        old_scores.push(new_score);
+        // note: backwards, using rev() to fix
+        old_scores.sort();
+        let updated = old_scores.iter().rev().take(10).map(|score| score.to_string()).collect::<Vec<_>>().join(",");
+        match fs::write(&self.settings.save_file, updated) {
+            Ok(_) => (),
+            Err(_) => panic!("couldn't write to save file"),
+        };
     }
 
     pub fn draw(&mut self, frame: i32) {
