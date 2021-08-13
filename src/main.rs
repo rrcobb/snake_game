@@ -59,10 +59,7 @@ impl Dot {
         let x = width as i32 * row + offset_x;
         let y = width as i32 * column + offset_y;
 
-        match canvas.fill_rect(Rect::new(x, y, width, width)) {
-            Ok(_) => {}
-            Err(error) => panic!("{}", error),
-        }
+        canvas.fill_rect(Rect::new(x, y, width, width)).unwrap();
     }
 }
 
@@ -146,10 +143,10 @@ impl Snake {
     fn check_pos(&self, rows: u32, columns: u32) -> bool {
         let head = &self.path[0];
         // check that snake is not at boundary
-        if head.row < 0
-            || head.column < 0
-            || (head.row as u32) > rows
-            || (head.column as u32) > columns
+        if head.row <= 0
+            || head.column <= 0
+            || (head.row as u32) >= rows
+            || (head.column as u32) >= columns
         {
             return false;
         };
@@ -167,10 +164,11 @@ impl Snake {
 }
 
 struct Settings {
-    width: u32,  // width of the game screen
-    height: u32, // height of the game screen
-    cols: u32,   // number of columns across
-    rows: u32,   // number of rows top to bottom
+    width: u32,   // width of the game screen
+    height: u32,  // height of the game screen
+    padding: i32, // gap between window and playable area
+    cols: u32,    // number of columns across
+    rows: u32,    // number of rows top to bottom
     ms_per_frame: u64,
     font_path: String, // path to the font to use
     font_size: u16,    // font size
@@ -179,8 +177,8 @@ struct Settings {
 
 impl Settings {
     fn init() -> Self {
-        let width = 720;
-        let cols = 36;
+        let cols = 30;
+        let width = 600;
 
         Settings {
             width,
@@ -188,6 +186,7 @@ impl Settings {
             // square cells on a square board, so rows = cols and height = width
             height: width,
             rows: cols,
+            padding: 60,
             ms_per_frame: 16, // 60 fps
             font_path: "/System/Library/Fonts/SFNSMono.ttf".into(),
             font_size: 18,
@@ -245,7 +244,8 @@ struct Game<'a> {
 
 impl<'ttf> Game<'ttf> {
     fn init(settings: Settings, ttf_context: &'ttf Sdl2TtfContext) -> Self {
-        let (canvas, events, texture_creator) = Game::init_canvas(settings.width, settings.height);
+        let (canvas, events, texture_creator) =
+            Game::init_canvas(settings.width, settings.height, settings.padding as u32);
         let mut rng = thread_rng();
 
         let mut font = ttf_context
@@ -289,12 +289,17 @@ impl<'ttf> Game<'ttf> {
     fn init_canvas(
         width: u32,
         height: u32,
+        padding: u32,
     ) -> (Canvas<Window>, EventPump, TextureCreator<WindowContext>) {
         let sdl_context = sdl2::init().unwrap();
         let video_subsystem = sdl_context.video().unwrap();
 
         let window = video_subsystem
-            .window("Rusty Snake", width + 1, height + 1)
+            .window(
+                "Rusty Snake",
+                width + 2 * padding + 1,
+                height + 2 * padding + 1,
+            )
             .position_centered()
             .opengl()
             .build()
@@ -424,11 +429,24 @@ impl Game<'_> {
         }
     }
 
+    fn draw_play_area(&mut self) {
+        self.canvas.set_draw_color(Color::RGB(50, 50, 50));
+        self.canvas
+            .fill_rect(Rect::new(
+                self.settings.padding,
+                self.settings.padding,
+                self.settings.height,
+                self.settings.width,
+            ))
+            .unwrap();
+    }
+
     fn render(&mut self) {
         self.clear_screen();
+        self.draw_play_area();
         let animation_frame = self.frame % self.frames_per_cell;
         self.dot
-            .draw(&mut self.canvas, self.settings.cell_width(), 0, 0);
+            .draw(&mut self.canvas, self.settings.cell_width(), self.settings.padding, self.settings.padding);
         self.draw_snake(animation_frame);
         self.show_info();
         self.canvas.present();
@@ -442,20 +460,18 @@ impl Game<'_> {
             format!("speed: {}", speed),
         ];
         for (i, message) in messages.iter().enumerate() {
-            self.display_message(message, 0, (i * 26) as i32, false)
-                .unwrap();
+            self.display_message(message, 0, (i * 26) as i32, false);
         }
     }
 
     fn display_centered_messages(&mut self, messages: Vec<&str>) {
         let width = self.settings.width;
         let height = self.settings.height;
-        let center_x = (width / 2) as i32;
-        let mut center_y = (height / 2) as i32;
+        let center_x = self.settings.padding + (width / 2) as i32;
+        let mut center_y = self.settings.padding + (height / 2) as i32;
         center_y -= messages.len() as i32 * 26 / 2;
         for (i, message) in messages.iter().enumerate() {
-            self.display_message(message, center_x, center_y + (i * 26) as i32, true)
-                .unwrap();
+            self.display_message(message, center_x, center_y + (i * 26) as i32, true);
         }
     }
 
@@ -465,21 +481,12 @@ impl Game<'_> {
 
     fn tick(&mut self) {
         self.snake.update_pos(&self.direction);
-
         if !self.snake.check_pos(self.settings.rows, self.settings.cols) {
             self.status = Status::Over;
             self.update_scores();
             return;
         }
-
-        if self.check_dot() {
-            self.dot = Dot::random_pos(
-                self.settings.rows,
-                self.settings.cols,
-                &self.snake,
-                &mut self.rng,
-            )
-        }
+        self.check_dot();
     }
 
     fn update_scores(&self) {
@@ -503,9 +510,9 @@ impl Game<'_> {
         };
     }
 
-    fn check_dot(&mut self) -> bool {
+    fn check_dot(&mut self) {
         let mut snake = &mut self.snake;
-        let dot = &self.dot;
+        let dot = &mut self.dot;
         let head = &snake.path[0];
 
         let hit = head.row == dot.row && head.column == dot.column;
@@ -514,8 +521,13 @@ impl Game<'_> {
             if snake.len % 10 == 0 && self.frames_per_cell > 0 {
                 self.frames_per_cell -= 1;
             }
+            *dot = Dot::random_pos(
+                self.settings.rows,
+                self.settings.cols,
+                &self.snake,
+                &mut self.rng,
+            )
         }
-        hit
     }
 
     fn draw_snake(&mut self, frame: i32) {
@@ -523,11 +535,12 @@ impl Game<'_> {
         let (mut x_shift, mut y_shift) = self.direction.xy();
 
         let width = self.settings.cell_width();
+        let padding = self.settings.padding;
         let offset = ((width as i32) / self.frames_per_cell) * frame;
 
         for pair in self.snake.path.windows(2) {
             let segment = &pair[0];
-            segment.draw(&mut self.canvas, width, x_shift * offset, y_shift * offset);
+            segment.draw(&mut self.canvas, width, x_shift * offset + padding, y_shift * offset + padding);
             let next = &pair[1];
             // each segment shifts towards the segment in front of it
             x_shift = segment.row - next.row;
@@ -541,23 +554,17 @@ impl Game<'_> {
     }
 
     // render text at the given x, y coordinates
-    fn display_message(
-        &mut self,
-        message: &str,
-        x: i32,
-        y: i32,
-        center: bool,
-    ) -> Result<(), String> {
+    fn display_message(&mut self, message: &str, x: i32, y: i32, center: bool) {
         let (mut x, mut y) = (x, y);
         let surface = self
             .font
             .render(message)
             .blended(Color::RGBA(255, 0, 0, 255))
-            .map_err(|e| e.to_string())?;
+            .unwrap();
         let texture = self
             .texture_creator
             .create_texture_from_surface(&surface)
-            .map_err(|e| e.to_string())?;
+            .unwrap();
 
         let TextureQuery { width, height, .. } = texture.query();
 
@@ -567,7 +574,6 @@ impl Game<'_> {
         }
 
         let target = Rect::new(x, y, width, height);
-        self.canvas.copy(&texture, None, Some(target))?;
-        Ok(())
+        self.canvas.copy(&texture, None, Some(target)).unwrap();
     }
 }

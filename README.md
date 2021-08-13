@@ -111,33 +111,38 @@ from https://snake.rustbridge.com/
 - persisted high scores
 - replace SnakeHead with Dot
 - display_message to take a center: bool
+- hjkl or wasd for navigation
+- playable area separated from full window area
+    - border
 
 ### TODO
 
 #### Features
 
-- hjkl or wasd for navigation
-- playable area separated from full window area
-    - border
+- snake sprite (head, tail)
+    - other sprites (dot, what else?)
+- snake color
+- rainbow mode (change bg color, what other colors?)
+- pop / burst of bg color when eating dot
+- windows build, so keely can download
+    - https://stackoverflow.com/questions/30291757/attaching-an-icon-resource-to-a-rust-application
 - pause menu
 - handle menu navigation keyboard events
 - respond to click events on a menu
 - settings menu
-- wrap at the edges (currently, die at edges) (as a setting?)
 - (user editable) game settings: size, speed, colors, icons?
-- snake color
-- snake sprite (head, tail)
-    - other sprites (dot, what else?)
-- rainbow mode (change bg color, what other colors)
-- pop / burst of bg color when eating dot
+- wrap at the edges (currently, die at edges) (as a setting?)
+- names for the high scores
+
 - buffer the input
-- windows build, so keely can download
 - handle window resize well
 
 #### code
+
 - refactor internals away from game state + settings: three big objects, instead
     of one
 - find / name more magic consts
+- 'toggle_pause' poorly named for handling restart
 - option for debug mode?
 - show timing information
 - profiling? care more abt speed and memory use?
