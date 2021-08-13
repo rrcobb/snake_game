@@ -31,6 +31,9 @@ from https://snake.rustbridge.com/
   - enum for the direction
   - using clone
   - dbg!, Clone, Debug
+  - cargo fmt
+  - cargo clippy
+  - cargo run vs build, --release
 
 - nice to introduce so that people can build cool things:
    - sdl2 ttf / font
@@ -105,12 +108,13 @@ from https://snake.rustbridge.com/
   - after the event loop ends, the Over game status
   - restart with message
 - centered messages on screens
+- persisted high scores
+- replace SnakeHead with Dot
 
 ### TODO
 
 #### Features
 
-- persisted high scores
 - playable area separated from full window area
 - pause menu
 - handle menu navigation keyboard events
@@ -128,7 +132,10 @@ from https://snake.rustbridge.com/
 - windows build, so keely can download
 - handle window resize well
 
-code
+#### code
+- refactor internals away from game state + settings: three big objects, instead
+    of one
+- option for debug mode?
 - show timing information
 - profiling? care more abt speed and memory use?
   - cache the rng for the dot random location
@@ -137,3 +144,9 @@ code
 - use some kind of fancy data structure somehow (for what?)
 - tests
 - No, for now: refactor: render_cell from draw_snake and draw_dot
+- pair of display_message fns might be refactorable
+
+#### as a tutorial
+
+- smooth animating the snake can come late
+- snake of dots is nice, especially if dots know how to draw themselves (done)
