@@ -114,17 +114,12 @@ from https://snake.rustbridge.com/
 - hjkl or wasd for navigation
 - playable area separated from full window area
     - border
+- snake sprite (head, tail)
+    - other sprites (dot, what else?)
 
 ### TODO
 
 #### Features
-
-- snake sprite (head, tail)
-    - other sprites (dot, what else?)
-        ```rust
-        let temp_surface = sdl2::surface::Surface::load_bmp(Path::new("assets/characters.bmp"))?;
-        let texture = texture_creator.create_texture_from_surface(&temp_surface)
-        ```
 
 - snake color
 - rainbow mode (change bg color, what other colors?)
@@ -144,6 +139,7 @@ from https://snake.rustbridge.com/
 
 #### code
 
+- don't load the texture every frame...
 - refactor internals away from game state + settings: three big objects, instead
     of one
 - find / name more magic consts

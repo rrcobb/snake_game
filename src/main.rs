@@ -6,10 +6,11 @@ use std::time::{Duration, Instant};
 use rand::{rngs::ThreadRng, thread_rng, Rng};
 use sdl2::{
     event::Event,
+    image::{LoadTexture, InitFlag},
     keyboard::Keycode,
     pixels::Color,
     rect::Rect,
-    render::{Canvas, TextureCreator, TextureQuery},
+    render::{Canvas, Texture, TextureCreator, TextureQuery},
     ttf::{Font, Sdl2TtfContext},
     video::{Window, WindowContext},
     EventPump,
@@ -18,6 +19,7 @@ use sdl2::{
 fn main() {
     let settings = Settings::init();
     let ttf_context = sdl2::ttf::init().expect("failed to init ttf module");
+    let _image_context = sdl2::image::init(InitFlag::PNG).unwrap();
     let game = Game::init(settings, &ttf_context);
 
     game.looop();
@@ -55,11 +57,29 @@ impl Dot {
 
     fn draw(&self, canvas: &mut Canvas<Window>, width: u32, offset_x: i32, offset_y: i32) {
         let Dot { row, column, color } = &self;
-        canvas.set_draw_color(*color);
         let x = width as i32 * row + offset_x;
         let y = width as i32 * column + offset_y;
 
+        canvas.set_draw_color(*color);
         canvas.fill_rect(Rect::new(x, y, width, width)).unwrap();
+    }
+
+    fn draw_texture(&self, canvas: &mut Canvas<Window>, width: u32, offset_x: i32, offset_y: i32, texture: &Texture, direction: &Direction) {
+        let Dot { row, column, .. } = &self;
+        let x = width as i32 * row + offset_x;
+        let y = width as i32 * column + offset_y;
+        let target = Rect::new(x, y, width, width);
+        // find the correct sprite for the direction
+        use Direction::*;
+        let (src_x, src_y) = match direction {
+            Up => (0,0),
+            Down => (0, 20),
+            Left => (20, 0),
+            Right => (20, 20),
+        };
+        let source = Rect::new(src_x, src_y, 20, 20);
+
+        canvas.copy(texture, source, target).unwrap();
     }
 }
 
@@ -538,10 +558,17 @@ impl Game<'_> {
         let width = self.settings.cell_width();
         let padding = self.settings.padding;
         let offset = ((width as i32) / self.frames_per_cell) * frame;
+        let mut canvas = &mut self.canvas;
+        let snake_texture = self.texture_creator.load_texture("src/assets/snake_head.png").unwrap();
+        let snake = &self.snake;
 
-        for pair in self.snake.path.windows(2) {
+        for (i, pair) in snake.path.windows(2).enumerate() {
             let segment = &pair[0];
-            segment.draw(&mut self.canvas, width, x_shift * offset + padding, y_shift * offset + padding);
+            if i == 0 {
+                segment.draw_texture(canvas, width, x_shift * offset + padding, y_shift * offset + padding, &snake_texture, &self.direction);
+            } else {
+                segment.draw(&mut canvas, width, x_shift * offset + padding, y_shift * offset + padding);
+            }
             let next = &pair[1];
             // each segment shifts towards the segment in front of it
             x_shift = segment.row - next.row;
