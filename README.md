@@ -121,6 +121,11 @@ from https://snake.rustbridge.com/
 
 - snake sprite (head, tail)
     - other sprites (dot, what else?)
+        ```rust
+        let temp_surface = sdl2::surface::Surface::load_bmp(Path::new("assets/characters.bmp"))?;
+        let texture = texture_creator.create_texture_from_surface(&temp_surface)
+        ```
+
 - snake color
 - rainbow mode (change bg color, what other colors?)
 - pop / burst of bg color when eating dot
@@ -128,12 +133,12 @@ from https://snake.rustbridge.com/
     - https://stackoverflow.com/questions/30291757/attaching-an-icon-resource-to-a-rust-application
 - pause menu
 - handle menu navigation keyboard events
-- respond to click events on a menu
+- respond to click events on the menu
+- base64 encode / decode the scores file
 - settings menu
 - (user editable) game settings: size, speed, colors, icons?
 - wrap at the edges (currently, die at edges) (as a setting?)
-- names for the high scores
-
+- names associated with the high scores
 - buffer the input
 - handle window resize well
 

@@ -282,6 +282,7 @@ impl<'ttf> Game<'ttf> {
             &mut self.rng,
         );
         self.frame = 0;
+        self.frames_per_cell = 6;
         self.direction = Direction::Right;
         self.status = Status::Running;
     }
