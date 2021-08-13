@@ -48,7 +48,7 @@ from https://snake.rustbridge.com/
     the inputs means taking a mutable borrow to the Game object, https://doc.rust-lang.org/nomicon/borrow-splitting.html
     - fixes: 
       - make game state and 'internals' separate
-      - push all the events into a buffer 
+      - push all the events into a buffer to handle, instead of inline?
     - split object per that page, mutate with e.g. `*direction = x;`
 
 ## Making the game work
@@ -110,15 +110,17 @@ from https://snake.rustbridge.com/
 - centered messages on screens
 - persisted high scores
 - replace SnakeHead with Dot
+- display_message to take a center: bool
 
 ### TODO
 
 #### Features
 
+- hjkl or wasd for navigation
 - playable area separated from full window area
+    - border
 - pause menu
 - handle menu navigation keyboard events
-- hjkl for navigation
 - respond to click events on a menu
 - settings menu
 - wrap at the edges (currently, die at edges) (as a setting?)
@@ -127,14 +129,15 @@ from https://snake.rustbridge.com/
 - snake sprite (head, tail)
     - other sprites (dot, what else?)
 - rainbow mode (change bg color, what other colors)
-- (buffer the input) 
 - pop / burst of bg color when eating dot
+- buffer the input
 - windows build, so keely can download
 - handle window resize well
 
 #### code
 - refactor internals away from game state + settings: three big objects, instead
     of one
+- find / name more magic consts
 - option for debug mode?
 - show timing information
 - profiling? care more abt speed and memory use?
@@ -143,10 +146,10 @@ from https://snake.rustbridge.com/
 - use a worker thread to speed something up?
 - use some kind of fancy data structure somehow (for what?)
 - tests
-- No, for now: refactor: render_cell from draw_snake and draw_dot
-- pair of display_message fns might be refactorable
 
 #### as a tutorial
 
 - smooth animating the snake can come late
 - snake of dots is nice, especially if dots know how to draw themselves (done)
+- there's starting to be a lot of code... how can we shrink it?
+- code organization???

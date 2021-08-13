@@ -1,3 +1,4 @@
+use std::convert::TryFrom;
 use std::fs;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -23,14 +24,50 @@ fn main() {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Dot {
-    pub row: i32,
-    pub column: i32,
-    pub color: Color,
+struct Dot {
+    row: i32,
+    column: i32,
+    color: Color,
+}
+
+impl Dot {
+    fn random_pos(rows: u32, columns: u32, snake: &Snake, rng: &mut ThreadRng) -> Dot {
+        // don't put the dot out of bounds
+        let mut row: i32 = rng.gen_range(0..rows) as i32;
+        let mut column: i32 = rng.gen_range(0..columns) as i32;
+
+        // don't put the dot on the snake
+        while snake
+            .path
+            .iter()
+            .any(|segment| segment.row == row && segment.column == column)
+        {
+            row = rng.gen_range(0..rows) as i32;
+            column = rng.gen_range(0..columns) as i32;
+        }
+
+        Dot {
+            row,
+            column,
+            color: Color::RGB(255, 255, 255), // white
+        }
+    }
+
+    fn draw(&self, canvas: &mut Canvas<Window>, width: u32, offset_x: i32, offset_y: i32) {
+        let Dot { row, column, color } = &self;
+        canvas.set_draw_color(*color);
+        let x = width as i32 * row + offset_x;
+        let y = width as i32 * column + offset_y;
+
+        match canvas.fill_rect(Rect::new(x, y, width, width)) {
+            Ok(_) => {}
+            Err(error) => panic!("{}", error),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
-pub enum Direction {
+enum Direction {
     Up,
     Down,
     Left,
@@ -38,7 +75,7 @@ pub enum Direction {
 }
 
 impl Direction {
-    pub fn safe_change(&mut self, other: Direction) {
+    fn safe_change(&mut self, other: Direction) {
         use Direction::*;
         // don't die if you try to go backwards!
         match (&self, &other) {
@@ -46,33 +83,57 @@ impl Direction {
             _ => *self = other,
         }
     }
-}
 
-#[derive(Debug)]
-pub struct Snake {
-    pub len: usize,
-    pub path: Vec<Dot>,
-}
-
-impl Snake {
-    fn init() -> Self {
-        Snake {
-            len: SNAKE_INIT_LEN,
-            path: vec![
-                // initial snake pos
-                Dot { row: 8, column: 8, color: Color::RGB(200, 0, 100) },
-            ],
-        }
-    }
-
-    pub fn update_pos(&mut self, direction: &Direction) {
+    fn xy(&self) -> (i32, i32) {
         use Direction::*;
-        let (x, y) = match *direction {
+        match self {
             Up => (0, -1),
             Down => (0, 1),
             Left => (-1, 0),
             Right => (1, 0),
-        };
+        }
+    }
+}
+
+impl TryFrom<Keycode> for Direction {
+    type Error = &'static str;
+
+    fn try_from(keycode: Keycode) -> Result<Self, Self::Error> {
+        match keycode {
+            Keycode::Up | Keycode::K | Keycode::W => Ok(Direction::Up),
+            Keycode::Down | Keycode::J | Keycode::S => Ok(Direction::Down),
+            Keycode::Left | Keycode::H | Keycode::A => Ok(Direction::Left),
+            Keycode::Right | Keycode::L | Keycode::D => Ok(Direction::Right),
+            _ => Err("can only make a direction from some keycodes"),
+        }
+    }
+}
+
+#[derive(Debug)]
+struct Snake {
+    len: usize,
+    path: Vec<Dot>,
+}
+
+impl Snake {
+    const INIT_LEN: usize = 4;
+
+    fn init() -> Self {
+        Snake {
+            len: Snake::INIT_LEN,
+            path: vec![
+                // initial snake pos, not random
+                Dot {
+                    row: 8,
+                    column: 8,
+                    color: Color::RGB(200, 0, 100),
+                },
+            ],
+        }
+    }
+
+    fn update_pos(&mut self, direction: &Direction) {
+        let (x, y) = direction.xy();
         let mut head = self.path[0].clone();
         head.row += x;
         head.column += y;
@@ -82,13 +143,13 @@ impl Snake {
         }
     }
 
-    pub fn check_pos(&self, rows: u32, columns: u32) -> bool {
+    fn check_pos(&self, rows: u32, columns: u32) -> bool {
         let head = &self.path[0];
         // check that snake is not at boundary
-        if !(head.row > 0
-            && head.column > 0
-            && (head.row as u32) < rows
-            && (head.column as u32) < columns)
+        if head.row < 0
+            || head.column < 0
+            || (head.row as u32) > rows
+            || (head.column as u32) > columns
         {
             return false;
         };
@@ -105,18 +166,11 @@ impl Snake {
     }
 }
 
-// should it be a setting?
-static SNAKE_INIT_LEN: usize = 4;
-
-pub struct Settings {
-    width: u32,      // width of the game screen
-    height: u32,     // height of the game screen
-    cols: u32,       // number of columns across
-    rows: u32,       // number of rows top to bottom
-    cell_width: u32, // how wide cells should be (width / cols)
-    // effective "game speed"
-    // how many frames you see when the snake moves one cell
-    frames_per_cell: i32,
+struct Settings {
+    width: u32,  // width of the game screen
+    height: u32, // height of the game screen
+    cols: u32,   // number of columns across
+    rows: u32,   // number of rows top to bottom
     ms_per_frame: u64,
     font_path: String, // path to the font to use
     font_size: u16,    // font size
@@ -127,9 +181,6 @@ impl Settings {
     fn init() -> Self {
         let width = 720;
         let cols = 36;
-        let cell_width = width / cols;
-        let ms_per_frame = 16; // 60 fps
-        let frames_per_cell = 6;
 
         Settings {
             width,
@@ -137,13 +188,16 @@ impl Settings {
             // square cells on a square board, so rows = cols and height = width
             height: width,
             rows: cols,
-            cell_width,
-            ms_per_frame,
-            frames_per_cell,
+            ms_per_frame: 16, // 60 fps
             font_path: "/System/Library/Fonts/SFNSMono.ttf".into(),
             font_size: 18,
             save_file: "./snake_scores.data".into(),
         }
+    }
+
+    // how wide cells should be (width / cols)
+    fn cell_width(&self) -> u32 {
+        self.width / self.cols
     }
 }
 
@@ -157,16 +211,32 @@ enum Status {
     Restart,
 }
 
-pub struct Game<'a> {
+impl Status {
+    fn toggle_pause(&mut self) {
+        match self {
+            Status::Running => *self = Status::Paused,
+            Status::Paused | Status::Start => *self = Status::Running,
+            Status::Over => {
+                *self = Status::Restart;
+            }
+            _ => (),
+        }
+    }
+}
+
+struct Game<'a> {
     settings: Settings,
     // internal state
-    frame: i32,
     canvas: Canvas<Window>,
     events: EventPump,
     texture_creator: TextureCreator<WindowContext>,
     rng: ThreadRng,
     font: Font<'a, 'a>,
     // game specific fields
+    frame: i32,
+    // effective "game speed"
+    // how many frames you see when the snake moves one cell
+    frames_per_cell: i32,
     status: Status,
     snake: Snake,
     dot: Dot,
@@ -193,6 +263,7 @@ impl<'ttf> Game<'ttf> {
             font,
             settings,
             frame: 0,
+            frames_per_cell: 6,
             rng,
             snake,
             dot,
@@ -210,6 +281,7 @@ impl<'ttf> Game<'ttf> {
             &self.snake,
             &mut self.rng,
         );
+        self.frame = 0;
         self.direction = Direction::Right;
         self.status = Status::Running;
     }
@@ -255,8 +327,6 @@ impl Game<'_> {
         }
     }
 
-    
-
     fn process_input(&mut self) {
         let events = &mut self.events;
         let direction = &mut self.direction;
@@ -264,29 +334,28 @@ impl Game<'_> {
         for event in events.poll_iter() {
             // dbg!(&event);
             match event {
-                Event::KeyDown { keycode: Some(Keycode::Escape), ..  }
+                Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                }
                 | Event::Quit { .. } => {
                     *status = Status::Exit;
                 }
-
                 Event::KeyDown {
                     keycode: Some(Keycode::Space),
                     ..
                 } => {
-                    status.toggle_pause();             
+                    status.toggle_pause();
                 }
-                Event::KeyDown { keycode, .. } => {
+                Event::KeyDown {
+                    keycode: Some(keycode),
+                    ..
+                } => {
                     if *status == Status::Paused {
                         // don't change direction when paused
                         continue;
                     }
-                    if let Some(dir) = match keycode {
-                        Some(Keycode::Up) => Some(Direction::Up),
-                        Some(Keycode::Down) => Some(Direction::Down),
-                        Some(Keycode::Left) => Some(Direction::Left),
-                        Some(Keycode::Right) => Some(Direction::Right),
-                        _ => None,
-                    } {
+                    if let Ok(dir) = Direction::try_from(keycode) {
                         direction.safe_change(dir);
                     }
                 }
@@ -301,7 +370,7 @@ impl Game<'_> {
             Status::Over => self.show_end(),
             Status::Restart => self.restart(),
             Status::Running => {
-                if self.frame % self.settings.frames_per_cell == 0 {
+                if self.frame % self.frames_per_cell == 0 {
                     self.tick();
                 }
                 self.render();
@@ -357,8 +426,9 @@ impl Game<'_> {
 
     fn render(&mut self) {
         self.clear_screen();
-        let animation_frame = self.frame % self.settings.frames_per_cell;
-        self.dot.draw(&mut self.canvas, self.settings.cell_width, 0, 0);
+        let animation_frame = self.frame % self.frames_per_cell;
+        self.dot
+            .draw(&mut self.canvas, self.settings.cell_width(), 0, 0);
         self.draw_snake(animation_frame);
         self.show_info();
         self.canvas.present();
@@ -366,13 +436,14 @@ impl Game<'_> {
     }
 
     fn show_info(&mut self) {
-        let speed = 60 / self.settings.frames_per_cell;
+        let speed = 60 / self.frames_per_cell;
         let messages = [
             format!("score: {}", self.score()),
             format!("speed: {}", speed),
         ];
         for (i, message) in messages.iter().enumerate() {
-            self.display_message(message, 0, (i * 25) as i32).unwrap();
+            self.display_message(message, 0, (i * 26) as i32, false)
+                .unwrap();
         }
     }
 
@@ -383,24 +454,24 @@ impl Game<'_> {
         let mut center_y = (height / 2) as i32;
         center_y -= messages.len() as i32 * 26 / 2;
         for (i, message) in messages.iter().enumerate() {
-            self.display_message_centered_on(message, center_x, center_y + (i * 26) as i32)
+            self.display_message(message, center_x, center_y + (i * 26) as i32, true)
                 .unwrap();
         }
     }
 
     fn score(&self) -> usize {
-        self.snake.len - SNAKE_INIT_LEN
+        self.snake.len - Snake::INIT_LEN
     }
 
     fn tick(&mut self) {
         self.snake.update_pos(&self.direction);
 
-        let valid = self.snake.check_pos(self.settings.rows, self.settings.cols);
-        if !valid {
+        if !self.snake.check_pos(self.settings.rows, self.settings.cols) {
             self.status = Status::Over;
             self.update_scores();
             return;
         }
+
         if self.check_dot() {
             self.dot = Dot::random_pos(
                 self.settings.rows,
@@ -417,13 +488,12 @@ impl Game<'_> {
             .split(',')
             .map(|s| s.parse::<usize>().unwrap_or(0))
             .collect();
-        let new_score = self.score();
-        old_scores.push(new_score);
+        old_scores.push(self.score());
         old_scores.sort_unstable();
         let updated = old_scores
             .iter()
             .rev()
-            .take(10)
+            .take(10) // only use the top 10 scores
             .map(|score| score.to_string())
             .collect::<Vec<_>>()
             .join(",");
@@ -433,7 +503,7 @@ impl Game<'_> {
         };
     }
 
-    pub fn check_dot(&mut self) -> bool {
+    fn check_dot(&mut self) -> bool {
         let mut snake = &mut self.snake;
         let dot = &self.dot;
         let head = &snake.path[0];
@@ -441,25 +511,19 @@ impl Game<'_> {
         let hit = head.row == dot.row && head.column == dot.column;
         if hit {
             snake.len += 1;
-            if snake.len % 10 == 0 && self.settings.frames_per_cell > 0 {
-                self.settings.frames_per_cell -= 1;
+            if snake.len % 10 == 0 && self.frames_per_cell > 0 {
+                self.frames_per_cell -= 1;
             }
         }
         hit
     }
 
-    pub fn draw_snake(&mut self, frame: i32) {
-        use Direction::*;
+    fn draw_snake(&mut self, frame: i32) {
         // shift in the direction of movement, for animation
-        let (mut x_shift, mut y_shift) = match self.direction {
-            Up => (0, -1),
-            Down => (0, 1),
-            Left => (-1, 0),
-            Right => (1, 0),
-        };
+        let (mut x_shift, mut y_shift) = self.direction.xy();
 
-        let width = self.settings.cell_width;
-        let offset = ((width as i32) / self.settings.frames_per_cell) * frame;
+        let width = self.settings.cell_width();
+        let offset = ((width as i32) / self.frames_per_cell) * frame;
 
         for pair in self.snake.path.windows(2) {
             let segment = &pair[0];
@@ -471,36 +535,20 @@ impl Game<'_> {
         }
     }
 
-    pub fn clear_screen(&mut self) {
-        self.canvas.set_draw_color(Color::RGB(0, 0, 0)); // black 
+    fn clear_screen(&mut self) {
+        self.canvas.set_draw_color(Color::RGB(0, 0, 0)); // black
         self.canvas.clear();
     }
 
     // render text at the given x, y coordinates
-    pub fn display_message(&mut self, message: &str, x: i32, y: i32) -> Result<(), String> {
-        let surface = self
-            .font
-            .render(message)
-            .blended(Color::RGBA(255, 0, 0, 255))
-            .map_err(|e| e.to_string())?;
-        let texture = self
-            .texture_creator
-            .create_texture_from_surface(&surface)
-            .map_err(|e| e.to_string())?;
-
-        let TextureQuery { width, height, .. } = texture.query();
-
-        let target = Rect::new(x, y, width, height);
-        self.canvas.copy(&texture, None, Some(target))?;
-        Ok(())
-    }
-
-    pub fn display_message_centered_on(
+    fn display_message(
         &mut self,
         message: &str,
         x: i32,
         y: i32,
+        center: bool,
     ) -> Result<(), String> {
+        let (mut x, mut y) = (x, y);
         let surface = self
             .font
             .render(message)
@@ -513,63 +561,13 @@ impl Game<'_> {
 
         let TextureQuery { width, height, .. } = texture.query();
 
-        let x = x - (width / 2) as i32;
-        let y = y - (height / 2) as i32;
+        if center {
+            x -= (width / 2) as i32;
+            y -= (height / 2) as i32;
+        }
 
         let target = Rect::new(x, y, width, height);
         self.canvas.copy(&texture, None, Some(target))?;
         Ok(())
-    }
-}
-
-impl Dot {
-    pub fn random_pos(rows: u32, columns: u32, snake: &Snake, rng: &mut ThreadRng) -> Dot {
-        // don't put the dot out of bounds
-        let mut row: i32 = rng.gen_range(0..rows) as i32;
-        let mut column: i32 = rng.gen_range(0..columns) as i32;
-
-        // don't put the dot on the snake
-        while Dot::on_snake(row, column, snake) {
-            row = rng.gen_range(0..rows) as i32;
-            column = rng.gen_range(0..columns) as i32;
-        }
-
-        Dot {
-            row,
-            column,
-            color: Color::RGB(255, 255, 255), // white 
-        }
-    }
-
-    fn on_snake(row: i32, column: i32, snake: &Snake) -> bool {
-        snake
-            .path
-            .iter()
-            .any(|segment| segment.row == row && segment.column == column)
-    }
-
-    fn draw(&self, canvas: &mut Canvas<Window>, width: u32, offset_x: i32, offset_y: i32) {
-        let Dot { row, column, color } = &self;
-        canvas.set_draw_color(*color);
-        let x = width as i32 * row + offset_x;
-        let y = width as i32 * column + offset_y;
-
-        match canvas.fill_rect(Rect::new(x, y, width, width)) {
-            Ok(_) => {}
-            Err(error) => panic!("{}", error),
-        }
-    }
-}
-
-impl Status {
-    fn toggle_pause(&mut self) {
-        match self {
-            Status::Running => *self = Status::Paused,
-            Status::Paused | Status::Start => *self = Status::Running,
-            Status::Over => {
-                *self = Status::Restart;
-            }
-            _ => (),
-        }
     }
 }
