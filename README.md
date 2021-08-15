@@ -117,6 +117,28 @@ from https://snake.rustbridge.com/
 - snake sprite (head, tail)
     - other sprites (dot, what else?)
 
+### building for windows
+
+```sh
+rustup target add i686-pc-windows-gnu
+cargo build --target i686-pc-windows-gnu
+# failure
+```
+
+Now we're in funky territory. In order to cross compile for windows, we need a
+windows toolchain:
+
+```sh
+brew install mingw-w64
+```
+
+now we get a different error: the linker can't find the actual sdl2 binaries.
+
+So, add sdl2's 'bundled' feature?
+
+- windows build, so keely can download
+    - https://stackoverflow.com/questions/30291757/attaching-an-icon-resource-to-a-rust-application
+
 ### TODO
 
 #### Features
@@ -124,8 +146,6 @@ from https://snake.rustbridge.com/
 - snake color
 - rainbow mode (change bg color, what other colors?)
 - pop / burst of bg color when eating dot
-- windows build, so keely can download
-    - https://stackoverflow.com/questions/30291757/attaching-an-icon-resource-to-a-rust-application
 - pause menu
 - handle menu navigation keyboard events
 - respond to click events on the menu
